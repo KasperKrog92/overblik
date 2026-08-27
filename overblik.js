@@ -396,7 +396,7 @@ function buildBoard() {
 function buildStatus() {
   const dele = [];
   if (S.planKilde === "dag") {
-    dele.push("<span>Plan: OnlinePlan · hentet " + esc((S.plan.hentet || "").replace("T", " kl. ").slice(0, 22)) + "</span>");
+    dele.push("<span>Plan: OnlinePlan · hentet " + esc((S.plan.hentet || "").slice(0, 16).replace("T", " kl. ")) + "</span>");
     if (S.plan.saerplan) dele.push("<span class='badge saer'>SÆRPLAN — ingen MS-numre</span>");
   } else if (S.planKilde === "fallback") {
     dele.push("<span class='badge warn'>Dagens plan er ikke hentet fra OnlinePlan — viser fast " +
