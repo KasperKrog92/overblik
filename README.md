@@ -5,8 +5,11 @@ skærm på OCC-kontoret. **Ingen persondata** — kun vagtnumre, løb, tognumre,
 machine shift-numre og tider (GDPR: førernavne og førernumre vises aldrig og
 findes ikke i repoet). Siden er markeret `noindex`.
 
-Designet er OCC Overbliks infoskærm (samme kolonner og logik), men med
-**Vagt**/**Afgiver** i stedet for fører-kolonnerne.
+Designet er OCC Overbliks infoskærm (samme logik), men med **Vagt**/**Afgiver**
+i stedet for fører-kolonnerne, uden bynavne under vagtnumrene, og med
+Tognr.-kolonnen skjult bag flaget `VIS_TOGNR` i `overblik.js` (sæt `true` og
+bump `?v=` for at vise den igen). Typografien er sat op til læsning på afstand
+(storskærm) og skalerer med skærmbredden.
 
 ## Sådan virker den
 
