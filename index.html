@@ -7,7 +7,11 @@
 <script>/* sæt gemt tema før render, så der ikke blinker (som OCC Overblik) */try{var t=localStorage.getItem("tema");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <title>Afgangsoverblik · Aarhus H</title>
-<link rel="stylesheet" href="overblik.css">
+<!-- ?v= bumpes ved HVER ændring af css/js: Cloudflare-proxyen edge-cacher
+     .js/.css i op til 10 min (max-age=600), og uden versionering kan besøgende
+     få ny HTML blandet med gammel JS/CSS (set 27-08-2026). Ny v = ny URL =
+     frisk fil med det samme; selve HTML'en edge-caches ikke. -->
+<link rel="stylesheet" href="overblik.css?v=6">
 </head>
 <body>
 <div class="infoboard" aria-live="polite">
@@ -33,6 +37,6 @@
   </div>
 </div>
 <noscript><p style="padding:20px">Afgangsoverblikket kræver JavaScript.</p></noscript>
-<script src="overblik.js"></script>
+<script src="overblik.js?v=6"></script>
 </body>
 </html>

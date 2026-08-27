@@ -497,6 +497,8 @@ initTheme();
 initFullscreen();
 for (const ev of ["mousemove", "pointerdown", "touchstart"])
   document.addEventListener(ev, visUiKnapper, { passive: true });
+/* Skrifter kan lande efter første render og ændre rækkehøjderne — efterbeskær. */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => trimRows());
 tickClock();
 opdater(true);
 setInterval(tickClock, 1000);

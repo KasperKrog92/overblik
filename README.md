@@ -53,6 +53,11 @@ ro og kommer igen ved bevægelse, så skærmen står ren. `?tema=moerk` /
 | HTTPS | GitHub udsteder certifikat automatisk når DNS-recorden svarer; slå derefter "Enforce HTTPS" til (repo → Settings → Pages) |
 | Dagligt datafeed | **GitHub Actions i det private vagtplan-repo** (`.github/workflows/overblik-publish.yml`): kører i skyen kl. ~04:20 og ~12/13 dansk tid, logger ind i OnlinePlan med krypterede Actions-secrets, bygger dagsfilerne og pusher hertil med en skrive-deploy-nøgle. Ingen lokal maskine involveret. |
 
+**Ved ændring af css/js: bump `?v=` på begge links i `index.html`.**
+Cloudflare-proxyen edge-cacher `.js`/`.css` i op til 10 min (max-age=600), så
+uden versionering kan besøgende få ny HTML blandet med gammel JS/CSS (set
+27-08-2026). Selve HTML'en og JSON-dagsfilerne edge-caches ikke.
+
 ## Dataformater
 
 `data/dage/<ÅÅÅÅ-MM-DD>.json` (én pr. driftsdato, prunes efter 7 dage):
