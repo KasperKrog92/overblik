@@ -41,7 +41,7 @@ låser temaet (ellers følges systemet). ⛶ øverst til højre = fuld skærm.
 | Domæne | `overblik.kasper-krog.dk` (styret af `CNAME`-filen — slet/ret ikke) |
 | DNS | CNAME-record: navn `overblik` → `kasperkrog92.github.io` |
 | HTTPS | GitHub udsteder certifikat automatisk når DNS-recorden svarer; slå derefter "Enforce HTTPS" til (repo → Settings → Pages) |
-| Dagligt datafeed | Task Scheduler på Kaspers maskine: `python scripts/overblik_publish.py publiser --push` (hovedprojektet) — henter i dag + i morgen og pusher hertil |
+| Dagligt datafeed | **GitHub Actions i det private vagtplan-repo** (`.github/workflows/overblik-publish.yml`): kører i skyen kl. ~04:20 og ~12/13 dansk tid, logger ind i OnlinePlan med krypterede Actions-secrets, bygger dagsfilerne og pusher hertil med en skrive-deploy-nøgle. Ingen lokal maskine involveret. |
 
 ## Dataformater
 
