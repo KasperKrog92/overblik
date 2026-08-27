@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Afgangsoverblik · Aarhus H</title>
+<link rel="stylesheet" href="overblik.css">
+</head>
+<body>
+<div class="infoboard" aria-live="polite">
+  <div class="infohead">
+    <div class="infobrand">
+      <span class="infomark" aria-hidden="true"></span>
+      <div><strong>Afgangsoverblik</strong><span>Aarhus Letbane</span></div>
+    </div>
+    <div class="infotitle"><span>Fra</span> Aarhus H</div>
+    <div class="infoactions">
+      <div class="infoclock tnum" id="clock">--:--</div>
+      <div class="infodate" id="date"></div>
+    </div>
+    <button class="infofullscreen" id="fullscreen" type="button"
+            title="Fuld skærm" aria-label="Vis afgangsoverblikket i fuld skærm">⛶</button>
+  </div>
+  <div class="infoscroll">
+    <table class="infotable" id="board">
+      <tbody><tr><td class="infoempty">Henter afgange …</td></tr></tbody>
+    </table>
+  </div>
+  <div class="infostatus" id="status"></div>
+</div>
+<noscript><p style="padding:20px">Afgangsoverblikket kræver JavaScript.</p></noscript>
+<script src="overblik.js"></script>
+</body>
+</html>

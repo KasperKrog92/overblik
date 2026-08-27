@@ -1,0 +1,124 @@
+/* Afgangsoverblik · Aarhus H — design overført fra OCC Overbliks infoskærm
+   (server/web/css/table.css), tilpasset som selvstændig helskærmsside.
+   Lys/mørk følger systemet; ?tema=lys|moerk sætter data-theme eksplicit. */
+
+:root {
+  color-scheme: light dark;
+  --info-bg:#f5f4ef; --info-row:#fbfaf6; --info-alt:#e8e6df; --info-ink:#24292f;
+  --info-muted:#74716c; --info-head:#dedbd3; --info-headink:#4f4d49;
+  --info-border:#d7d4cc; --info-grid:rgba(80,78,73,.11); --cancel:#c92929;
+  --logo:url(logo-mark.png);
+}
+:root[data-theme="dark"] {
+  --info-bg:#17191c; --info-row:#202328; --info-alt:#292c31; --info-ink:#f2f1ed;
+  --info-muted:#aaa7a1; --info-head:#34373c; --info-headink:#c7c5c0;
+  --info-border:#3a3d43; --info-grid:rgba(255,255,255,.09); --cancel:#ff5f5f;
+  --logo:url(logo-mark-dark.png);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --info-bg:#17191c; --info-row:#202328; --info-alt:#292c31; --info-ink:#f2f1ed;
+    --info-muted:#aaa7a1; --info-head:#34373c; --info-headink:#c7c5c0;
+    --info-border:#3a3d43; --info-grid:rgba(255,255,255,.09); --cancel:#ff5f5f;
+    --logo:url(logo-mark-dark.png);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--info-bg); color: var(--info-ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+.infoboard { height: 100%; display: flex; flex-direction: column; }
+.infohead { position: relative; min-height: 104px; display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 24px; padding: 18px 28px 14px; border-bottom: 1px solid var(--info-border); }
+.infobrand { justify-self: start; display: flex; align-items: center; gap: 13px; }
+.infomark { width: 64px; height: 28px; flex: none; background: var(--logo) left center/contain no-repeat; }
+.infobrand div { display: flex; flex-direction: column; line-height: 1.15; }
+.infobrand strong { font-size: clamp(18px, 1.3vw, 26px); letter-spacing: -.02em; }
+.infobrand span { margin-top: 3px; color: var(--info-muted); font-size: clamp(12px, .8vw, 15px); }
+.infotitle { justify-self: center; font-size: clamp(20px, 1.35vw, 28px); font-weight: 760; white-space: nowrap; }
+.infotitle span { margin-right: 5px; color: var(--info-muted); font-weight: 500; }
+.infoactions { justify-self: end; display: flex; flex-direction: column; align-items: center;
+  padding-right: 31px; text-align: center; }
+.infoclock { font-size: clamp(36px, 2.6vw, 52px); font-weight: 800; letter-spacing: .055em; line-height: 1; }
+.infodate { margin-top: 4px; color: var(--info-muted); font-size: clamp(11px, .74vw, 15px);
+  font-weight: 600; text-transform: capitalize; }
+.infofullscreen { position: absolute; top: 10px; right: 11px; width: 32px; height: 32px; padding: 0;
+  display: grid; place-items: center; border: 1px solid transparent; border-radius: 6px; background: transparent;
+  color: var(--info-muted); font: inherit; font-size: 18px; line-height: 1; cursor: pointer; opacity: .58;
+  transition: opacity .25s ease, background .15s ease; }
+.infofullscreen:hover { background: rgba(128,128,128,.14); opacity: 1; }
+
+.infoscroll { min-height: 0; flex: 1 1 auto; display: flex; overflow: auto; }
+.infotable { width: 100%; min-width: 1100px; height: 100%; border-collapse: collapse; table-layout: fixed; }
+.infotable th { padding: 9px 12px 8px; background: var(--info-head); color: var(--info-headink);
+  border-bottom: 1px solid var(--info-border); font-size: clamp(10.5px, .64vw, 13px); font-weight: 750;
+  letter-spacing: .055em; text-align: left; text-transform: uppercase; }
+.infotable th:nth-child(1) { width: 6%; }
+.infotable th:nth-child(2) { width: 14%; }
+.infotable th:nth-child(3) { width: 22%; }
+.infotable th:nth-child(4) { width: 9%; }
+.infotable th:nth-child(5) { width: 12%; }
+.infotable th:nth-child(6) { width: 14%; }
+.infotable th:nth-child(7) { width: 16%; }
+.infotable th:nth-child(8) { width: 7%; }
+.infotable th.num, .infotable td.num { text-align: right; }
+.infotable th:nth-child(5), .infotable td:nth-child(5) { text-align: center; }
+.infotable tbody tr { background: var(--info-row); }
+.infotable tbody tr:nth-child(even) { background: var(--info-alt); }
+.infotable tbody tr.cancelled { color: var(--info-muted); }
+.infotable td { padding: 6px 14px; border-bottom: 1px solid var(--info-grid); vertical-align: middle; }
+
+.infoline { display: inline-grid; place-items: center; min-width: 48px; height: 38px; padding: 0 7px;
+  color: #fff; font-size: clamp(17px, 1vw, 21px); font-weight: 820; }
+.infoline.l1 { background: #27576b; }
+.infoline.l2 { background: #3f5c99; }
+.destination { font-size: clamp(19px, 1.25vw, 27px); font-weight: 750; line-height: 1.12; }
+.destination small, .vagt small, .handoff small, .inforun + small,
+.infotable td:nth-child(5) small { display: block; margin-top: 3px; color: var(--info-muted);
+  font-size: clamp(10.5px, .64vw, 13px); font-weight: 550; }
+.destination .canceltext { color: var(--cancel); font-size: clamp(11px, .7vw, 14px);
+  font-weight: 750; text-transform: uppercase; }
+.train { font-size: clamp(17px, 1vw, 22px); font-weight: 750; }
+.inforun { display: inline-grid; place-items: center; min-width: 42px; padding: 4px 10px; border-radius: 999px;
+  background: #29333d; color: #fff; font-size: clamp(14px, .9vw, 19px); font-weight: 800; }
+:root[data-theme="dark"] .inforun { background: #46505b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .inforun { background: #46505b; } }
+.vagt, .handoff { line-height: 1.15; }
+.vagt strong, .handoff strong { display: block; font-size: clamp(15px, .95vw, 20px);
+  font-weight: 780; font-variant-numeric: tabular-nums; }
+.handoff .same, .mangler { color: var(--info-muted); font-size: clamp(12px, .7vw, 14px); font-weight: 650; }
+.infotable .track { color: var(--info-muted); font-size: clamp(20px, 1.35vw, 28px); }
+.departure { line-height: 1; }
+.departure strong { display: block; font-size: clamp(23px, 1.6vw, 33px); font-weight: 820; letter-spacing: .02em; }
+.departure .planned { display: block; margin-bottom: 3px; color: var(--info-muted);
+  font-size: clamp(12px, .76vw, 16px); text-decoration: line-through; }
+.departure .cancelled-departure { display: flex; align-items: baseline; justify-content: flex-end;
+  gap: 10px; white-space: nowrap; }
+.departure .cancelled-departure strong, .departure .cancelled-departure .planned { display: inline;
+  margin: 0; font-size: clamp(23px, 1.6vw, 33px); font-weight: 820; }
+.departure small { display: block; margin-top: 4px; color: var(--cancel);
+  font-size: clamp(10px, .64vw, 13px); font-weight: 800; }
+.departure small.buffered { color: var(--info-muted); font-weight: 600; }
+.cancelled .departure strong, .partial .destination .canceltext { color: var(--cancel); }
+.cancelled .destination { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.infoempty { height: 160px; color: var(--info-muted); text-align: center; font-size: 15px; }
+
+.infostatus { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
+  padding: 7px 16px 9px; border-top: 1px solid var(--info-border); color: var(--info-muted);
+  font-size: clamp(11px, .68vw, 13.5px); }
+.infostatus .dot { opacity: .6; }
+.badge { padding: 2px 9px; border-radius: 999px; font-weight: 700; }
+.badge.warn { background: color-mix(in srgb, #c98500 22%, transparent); color: #a56d00; }
+:root[data-theme="dark"] .badge.warn { color: #e0a83c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge.warn { color: #e0a83c; } }
+.badge.saer { background: color-mix(in srgb, #7454d6 20%, transparent); color: #7454d6; }
+:root[data-theme="dark"] .badge.saer { color: #baaaf6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge.saer { color: #baaaf6; } }
+
+@media (max-width: 900px) {
+  .infohead { grid-template-columns: 1fr auto; min-height: 0; gap: 10px 16px; padding: 12px 16px 10px; }
+  .infotitle { display: none; }
+}
