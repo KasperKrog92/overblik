@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<script>/* sæt gemt tema før render, så der ikke blinker (som OCC Overblik) */try{var t=localStorage.getItem("tema");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <title>Afgangsoverblik · Aarhus H</title>
 <link rel="stylesheet" href="overblik.css">
@@ -22,8 +23,11 @@
     </div>
     <button class="infofullscreen" id="fullscreen" type="button"
             title="Fuld skærm" aria-label="Vis afgangsoverblikket i fuld skærm">⛶</button>
-    <button class="infotheme" id="themeBtn" type="button"
-            title="Skift tema (Auto / Mørk / Lys)" aria-label="Skift mellem automatisk, mørkt og lyst tema"></button>
+    <div class="themechoices" role="group" aria-label="Udseende">
+      <button type="button" class="themechoice" data-theme-choice="auto" aria-pressed="false">Auto</button>
+      <button type="button" class="themechoice" data-theme-choice="light" aria-pressed="false">Lys</button>
+      <button type="button" class="themechoice" data-theme-choice="dark" aria-pressed="false">Mørk</button>
+    </div>
   </div>
   <div class="infoscroll">
     <table class="infotable" id="board">

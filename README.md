@@ -29,10 +29,10 @@ To datakilder, begge uden backend:
    plantider og en advarsel.
 
 Driftsdøgnet skifter kl. 04 (som planen). Siden genindlæser sig selv ved
-døgnskiftet, så kioskskærmen kører uden betjening. Tema-knappen øverst til
-højre cykler Auto (følg systemet) / Mørk / Lys og husker valget i browseren;
-`?tema=moerk` / `?tema=lys` i URL'en gør det samme til kioskbrug (et klik på
-knappen vinder over URL'en). ⛶ = fuld skærm.
+døgnskiftet, så kioskskærmen kører uden betjening. Tema-vælgeren øverst til
+højre er OCC Overbliks segmenterede Auto/Lys/Mørk (samme implementation:
+localStorage-nøglen `tema` + anti-blink-script i `<head>`); `?tema=moerk` /
+`?tema=lys` i URL'en sætter valget til kioskbrug. ⛶ = fuld skærm.
 
 ## Drift
 
