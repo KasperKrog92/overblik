@@ -429,38 +429,45 @@ async function opdater(medPlan) {
   buildBoard();
 }
 
-/* ---------- udseende — kopieret fra OCC Overblik (server/web/app.js), blot
-   uden profil-nøglen: valget gemmes under "tema" (samme nøgle som det tidlige
-   head-script læser mod blink). ?tema=moerk|lys sætter valget én gang (kiosk). */
-const TEMAER = ["auto", "light", "dark"];
-function lesTema() {
-  try {
-    const t = localStorage.getItem("tema");
-    return TEMAER.includes(t) ? t : "auto";
-  } catch (e) { return "auto"; }
-}
-function renderTemaValg(t) {
-  document.querySelectorAll("[data-theme-choice]").forEach((b) => {
-    const valgt = b.dataset.themeChoice === t;
-    b.classList.toggle("on", valgt);
-    b.setAttribute("aria-pressed", valgt ? "true" : "false");
-  });
+/* ---------- udseende: enkel sol/måne-toggle (ingen Auto-knap) ----------
+   Uden gemt valg følges systemet (head-scriptet sætter gemt tema før render
+   mod blink); et klik vipper til det modsatte af det man SER og gemmer det
+   under "tema" (light/dark). Ikonet viser det man skifter TIL.
+   ?tema=moerk|lys i URL'en sætter valget én gang (kiosk). */
+const moerkNu = () => {
+  const t = document.documentElement.getAttribute("data-theme");
+  return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+};
+function opdaterTemaIkon() {
+  const btn = $("#themeBtn");
+  btn.textContent = moerkNu() ? "☀" : "☾";
+  const til = moerkNu() ? "lys" : "mørk";
+  btn.title = "Skift til " + til + " tilstand";
+  btn.setAttribute("aria-label", "Skift til " + til + " tilstand");
 }
 function saetTema(t) {
-  if (t === "auto") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", t);
-  try {
-    if (t === "auto") localStorage.removeItem("tema");
-    else localStorage.setItem("tema", t);
-  } catch (e) {}
-  renderTemaValg(t);
+  document.documentElement.setAttribute("data-theme", t);
+  try { localStorage.setItem("tema", t); } catch (e) {}
+  opdaterTemaIkon();
 }
 function initTheme() {
   const p = new URLSearchParams(location.search).get("tema");
   const fraUrl = { moerk: "dark", dark: "dark", lys: "light", light: "light" }[p];
-  saetTema(fraUrl || lesTema());
-  document.querySelectorAll("[data-theme-choice]").forEach((b) =>
-    b.addEventListener("click", () => saetTema(b.dataset.themeChoice)));
+  if (fraUrl) saetTema(fraUrl);
+  opdaterTemaIkon();
+  $("#themeBtn").addEventListener("click", () => saetTema(moerkNu() ? "light" : "dark"));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", opdaterTemaIkon);
+}
+
+/* Fuldskærms- og temaknappen fader væk i ro og vises ved musebevægelse —
+   porteret fra view-tabel.js' showInfoFullscreenControl (1,6 s), men aktiv
+   hele tiden, så kioskskærmen står helt ren. */
+let uiFadeTimer = null;
+function visUiKnapper() {
+  const board = $(".infoboard");
+  board.classList.add("ui-visible");
+  clearTimeout(uiFadeTimer);
+  uiFadeTimer = setTimeout(() => board.classList.remove("ui-visible"), 1600);
 }
 
 function initFullscreen() {
@@ -476,6 +483,8 @@ function initFullscreen() {
 
 initTheme();
 initFullscreen();
+for (const ev of ["mousemove", "pointerdown", "touchstart"])
+  document.addEventListener(ev, visUiKnapper, { passive: true });
 tickClock();
 opdater(true);
 setInterval(tickClock, 1000);
