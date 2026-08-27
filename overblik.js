@@ -429,10 +429,34 @@ async function opdater(medPlan) {
   buildBoard();
 }
 
-function initTheme() {
+/* Tema: Auto (følg systemet) / Mørk / Lys. Knappen cykler og gemmer valget i
+   localStorage; ?tema=moerk|lys i URL'en vinder over det gemte (kioskbrug). */
+const TEMAER = ["auto", "moerk", "lys"];
+const TEMA_LABEL = { auto: "◐ Auto", moerk: "☾ Mørk", lys: "☀ Lys" };
+function aktueltTema() {
   const p = new URLSearchParams(location.search).get("tema");
-  if (p === "moerk" || p === "dark") document.documentElement.dataset.theme = "dark";
-  else if (p === "lys" || p === "light") document.documentElement.dataset.theme = "light";
+  if (p === "moerk" || p === "dark") return "moerk";
+  if (p === "lys" || p === "light") return "lys";
+  try { const g = localStorage.getItem("tema"); if (TEMAER.includes(g)) return g; } catch (e) {}
+  return "auto";
+}
+function anvendTema(tema) {
+  if (tema === "moerk") document.documentElement.dataset.theme = "dark";
+  else if (tema === "lys") document.documentElement.dataset.theme = "light";
+  else delete document.documentElement.dataset.theme;
+  const btn = $("#themeBtn");
+  if (btn) btn.textContent = TEMA_LABEL[tema];
+}
+function initTheme() {
+  anvendTema(aktueltTema());
+  $("#themeBtn").addEventListener("click", () => {
+    const naeste = TEMAER[(TEMAER.indexOf(aktueltTema()) + 1) % TEMAER.length];
+    try { localStorage.setItem("tema", naeste); } catch (e) {}
+    /* Et klik er et aktivt valg — det skal vinde, også over ?tema= i URL'en. */
+    const url = new URL(location.href);
+    if (url.searchParams.has("tema")) { url.searchParams.delete("tema"); history.replaceState(null, "", url); }
+    anvendTema(naeste);
+  });
 }
 
 function initFullscreen() {
