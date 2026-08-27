@@ -19,14 +19,20 @@ To datakilder, begge uden backend:
    (events, sporarbejde) — dagen mærkes da "SÆRPLAN" og machine shift-numrene
    udelades (de kendes kun for de faste man–tors-/fredagsplaner).
    Mangler dagsfilen, falder siden tilbage til `data/fallback.json` (de fire
-   faste dagtyper) med en tydelig advarsel i statuslinjen.
+   faste dagtyper).
 2. **Realtid**: Rejseplanens HAFAS-endpoint kaldes direkte fra browseren
    (CORS er åben). AR-afgangstavlen er facit for afgange, forsinkelser og
    aflysninger; ankomsttavlen fanger indadgående aflysninger (vises som
    "Indgående aflyst"); JourneyGeoPos/-Details giver løb-forsinkelser og
    delvise aflysninger. Vendetid på Aarhus H trækkes fra forsinkelsen som på
    den interne infoskærm. Endpointet er uofficielt — fejler det, viser siden
-   plantider og en advarsel.
+   plantider.
+
+Der er ingen synlig statuslinje/footer (fjernet på Kaspers ønske) — plan- og
+realtidsstatus (inkl. fallback-/særplan-advarsler) ligger som tooltip på uret.
+Tavlen viser op til 12 afgange, men beskærer selv antallet af rækker, så der
+aldrig kommer lodret scrollbar — heller ikke ved kraftig zoom (rækkeantallet
+tilpasser sig i stedet; genberegnes ved resize/zoom).
 
 Driftsdøgnet skifter kl. 04 (som planen). Siden genindlæser sig selv ved
 døgnskiftet, så kioskskærmen kører uden betjening. Øverst til højre sidder ⛶

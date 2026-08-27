@@ -59,7 +59,9 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .ui-visible .infofullscreen, .infofullscreen:focus-visible { opacity: .58; pointer-events: auto; }
 .infofullscreen:hover { background: rgba(128,128,128,.14); opacity: 1; }
 
-.infoscroll { min-height: 0; flex: 1 1 auto; display: flex; overflow: auto; }
+/* Aldrig lodret scrollbar: tavlen beskærer selv antallet af rækker (trimRows i
+   overblik.js), så indholdet altid passer i højden — også ved kraftig zoom. */
+.infoscroll { min-height: 0; flex: 1 1 auto; display: flex; overflow-x: auto; overflow-y: hidden; }
 .infotable { width: 100%; min-width: 1100px; height: 100%; border-collapse: collapse; table-layout: fixed; }
 .infotable th { padding: 9px 12px 8px; background: var(--info-head); color: var(--info-headink);
   border-bottom: 1px solid var(--info-border); font-size: clamp(10.5px, .64vw, 13px); font-weight: 750;
@@ -113,18 +115,6 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .cancelled .departure strong, .partial .destination .canceltext { color: var(--cancel); }
 .cancelled .destination { text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .infoempty { height: 160px; color: var(--info-muted); text-align: center; font-size: 15px; }
-
-.infostatus { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
-  padding: 7px 16px 9px; border-top: 1px solid var(--info-border); color: var(--info-muted);
-  font-size: clamp(11px, .68vw, 13.5px); }
-.infostatus .dot { opacity: .6; }
-.badge { padding: 2px 9px; border-radius: 999px; font-weight: 700; }
-.badge.warn { background: color-mix(in srgb, #c98500 22%, transparent); color: #a56d00; }
-:root[data-theme="dark"] .badge.warn { color: #e0a83c; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge.warn { color: #e0a83c; } }
-.badge.saer { background: color-mix(in srgb, #7454d6 20%, transparent); color: #7454d6; }
-:root[data-theme="dark"] .badge.saer { color: #baaaf6; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge.saer { color: #baaaf6; } }
 
 @media (max-width: 900px) {
   .infohead { grid-template-columns: 1fr auto; min-height: 0; gap: 10px 16px; padding: 12px 16px 10px; }

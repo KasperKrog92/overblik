@@ -390,27 +390,39 @@ function buildBoard() {
       (S.plan ? "Ingen flere afgange fra Aarhus H lige nu." : "Ingen plandata tilgængelig.") + "</td></tr>";
   }
   board.innerHTML = html + "</tbody>";
+  trimRows();
   buildStatus();
 }
 
+/* Aldrig lodret scrollbar (Kasper 27-08-2026): passer alle rækker ikke i
+   højden (fx ved kraftig zoom), fjernes de bagerste til tavlen går op —
+   antallet af viste afgange tilpasser sig i stedet for at scrolle. */
+function trimRows() {
+  const scroll = $(".infoscroll"), body = $("#board tbody");
+  if (!scroll || !body) return;
+  let vagt = 0;   // værn mod uendelig løkke hvis én række aldrig kan passe
+  while (scroll.scrollHeight > scroll.clientHeight + 1 && body.rows.length > 1 && vagt++ < 20)
+    body.deleteRow(body.rows.length - 1);
+}
+
+/* Ingen synlig statuslinje (fjernet 27-08-2026) — status ligger i stedet som
+   tooltip på uret, så den stadig kan findes ved hover uden at fylde noget. */
 function buildStatus() {
   const dele = [];
   if (S.planKilde === "dag") {
-    dele.push("<span>Plan: OnlinePlan · hentet " + esc((S.plan.hentet || "").slice(0, 16).replace("T", " kl. ")) + "</span>");
-    if (S.plan.saerplan) dele.push("<span class='badge saer'>SÆRPLAN — ingen MS-numre</span>");
+    dele.push("Plan: OnlinePlan · hentet " + (S.plan.hentet || "").slice(0, 16).replace("T", " kl. ") +
+      (S.plan.saerplan ? " · SÆRPLAN (ingen MS-numre)" : ""));
   } else if (S.planKilde === "fallback") {
-    dele.push("<span class='badge warn'>Dagens plan er ikke hentet fra OnlinePlan — viser fast " +
-      esc(S.plan.kalender_dagtype) + "-plan (vagt/løb kan afvige på særplandage)</span>");
+    dele.push("OBS: dagens plan er ikke hentet fra OnlinePlan — viser fast " +
+      S.plan.kalender_dagtype + "-plan (vagt/løb kan afvige på særplandage)");
   } else {
-    dele.push("<span class='badge warn'>Ingen plandata — viser kun Rejseplanens tavle</span>");
+    dele.push("OBS: ingen plandata — viser kun Rejseplanens tavle");
   }
-  if (S.rtOk && S.rtSidst) {
-    dele.push("<span>Realtid: Rejseplanen · opdateret " + S.rtSidst.toLocaleTimeString("da-DK") + "</span>");
-  } else {
-    dele.push("<span class='badge warn'>Realtid utilgængelig" +
-      (S.rtSidst ? " (sidst " + S.rtSidst.toLocaleTimeString("da-DK") + ")" : "") + " — viser plantider</span>");
-  }
-  $("#status").innerHTML = dele.join("<span class='dot'>·</span>");
+  dele.push(S.rtOk && S.rtSidst
+    ? "Realtid: Rejseplanen · opdateret " + S.rtSidst.toLocaleTimeString("da-DK")
+    : "OBS: realtid utilgængelig" + (S.rtSidst ? " (sidst " + S.rtSidst.toLocaleTimeString("da-DK") + ")" : "") +
+      " — viser plantider");
+  $("#clock").title = dele.join("\n");
 }
 
 function tickClock() {
@@ -488,6 +500,8 @@ for (const ev of ["mousemove", "pointerdown", "touchstart"])
 tickClock();
 opdater(true);
 setInterval(tickClock, 1000);
+let resizeTimer = null;   // zoom udløser resize: genbyg så rækkeantallet passer
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(buildBoard, 200); });
 setInterval(() => opdater(false), 40 * 1000);          // realtid
 setInterval(() => hentPlan().then(buildBoard), 15 * 60 * 1000);   // ny dagsfil publiceret?
 document.addEventListener("visibilitychange", () => { if (!document.hidden) opdater(true); });
