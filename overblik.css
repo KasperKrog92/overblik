@@ -64,7 +64,7 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .infoscroll { min-height: 0; flex: 1 1 auto; display: flex; overflow-x: auto; overflow-y: hidden; }
 .infotable { width: 100%; min-width: 1100px; height: 100%; border-collapse: collapse; table-layout: fixed; }
 .infotable th { padding: 9px 12px 8px; background: var(--info-head); color: var(--info-headink);
-  border-bottom: 1px solid var(--info-border); font-size: clamp(10.5px, .64vw, 13px); font-weight: 750;
+  border-bottom: 1px solid var(--info-border); font-size: clamp(12px, .78vw, 15px); font-weight: 750;
   letter-spacing: .055em; text-align: left; text-transform: uppercase; }
 /* Kolonnebredder pr. klasse (ikke nth-child), så Tognr.-kolonnen kan skjules/
    vises med VIS_TOGNR uden at bredderne forskubbes. Summen < 100 % når Tognr.
@@ -84,36 +84,36 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .infotable tbody tr.cancelled { color: var(--info-muted); }
 .infotable td { padding: 6px 14px; border-bottom: 1px solid var(--info-grid); vertical-align: middle; }
 
-.infoline { display: inline-grid; place-items: center; min-width: 48px; height: 38px; padding: 0 7px;
-  color: #fff; font-size: clamp(17px, 1vw, 21px); font-weight: 820; }
+.infoline { display: inline-grid; place-items: center; min-width: 54px; height: 44px; padding: 0 8px;
+  color: #fff; font-size: clamp(19px, 1.25vw, 26px); font-weight: 820; }
 .infoline.l1 { background: #27576b; }
 .infoline.l2 { background: #3f5c99; }
-.destination { font-size: clamp(19px, 1.25vw, 27px); font-weight: 750; line-height: 1.12; }
+.destination { font-size: clamp(22px, 1.5vw, 33px); font-weight: 750; line-height: 1.12; }
 .destination small, .vagt small, .handoff small, .inforun + small,
 .infotable td.c-lobms small { display: block; margin-top: 3px; color: var(--info-muted);
-  font-size: clamp(10.5px, .64vw, 13px); font-weight: 550; }
-.destination .canceltext { color: var(--cancel); font-size: clamp(11px, .7vw, 14px);
+  font-size: clamp(13px, .85vw, 17px); font-weight: 550; }
+.destination .canceltext { color: var(--cancel); font-size: clamp(13px, .85vw, 17px);
   font-weight: 750; text-transform: uppercase; }
 .train { font-size: clamp(17px, 1vw, 22px); font-weight: 750; }
-.inforun { display: inline-grid; place-items: center; min-width: 42px; padding: 4px 10px; border-radius: 999px;
-  background: #29333d; color: #fff; font-size: clamp(14px, .9vw, 19px); font-weight: 800; }
+.inforun { display: inline-grid; place-items: center; min-width: 50px; padding: 5px 12px; border-radius: 999px;
+  background: #29333d; color: #fff; font-size: clamp(17px, 1.2vw, 25px); font-weight: 800; }
 :root[data-theme="dark"] .inforun { background: #46505b; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .inforun { background: #46505b; } }
 .vagt, .handoff { line-height: 1.15; }
-.vagt strong, .handoff strong { display: block; font-size: clamp(15px, .95vw, 20px);
+.vagt strong, .handoff strong { display: block; font-size: clamp(20px, 1.5vw, 31px);
   font-weight: 780; font-variant-numeric: tabular-nums; }
-.handoff .same, .mangler { color: var(--info-muted); font-size: clamp(12px, .7vw, 14px); font-weight: 650; }
-.infotable .track { color: var(--info-muted); font-size: clamp(20px, 1.35vw, 28px); }
+.handoff .same, .mangler { color: var(--info-muted); font-size: clamp(15px, .95vw, 19px); font-weight: 650; }
+.infotable .track { color: var(--info-muted); font-size: clamp(24px, 1.75vw, 36px); }
 .departure { line-height: 1; }
-.departure strong { display: block; font-size: clamp(23px, 1.6vw, 33px); font-weight: 820; letter-spacing: .02em; }
+.departure strong { display: block; font-size: clamp(26px, 1.85vw, 40px); font-weight: 820; letter-spacing: .02em; }
 .departure .planned { display: block; margin-bottom: 3px; color: var(--info-muted);
-  font-size: clamp(12px, .76vw, 16px); text-decoration: line-through; }
+  font-size: clamp(14px, .95vw, 19px); text-decoration: line-through; }
 .departure .cancelled-departure { display: flex; align-items: baseline; justify-content: flex-end;
   gap: 10px; white-space: nowrap; }
 .departure .cancelled-departure strong, .departure .cancelled-departure .planned { display: inline;
-  margin: 0; font-size: clamp(23px, 1.6vw, 33px); font-weight: 820; }
+  margin: 0; font-size: clamp(26px, 1.85vw, 40px); font-weight: 820; }
 .departure small { display: block; margin-top: 4px; color: var(--cancel);
-  font-size: clamp(10px, .64vw, 13px); font-weight: 800; }
+  font-size: clamp(12px, .82vw, 16px); font-weight: 800; }
 .departure small.buffered { color: var(--info-muted); font-weight: 600; }
 .cancelled .departure strong, .partial .destination .canceltext { color: var(--cancel); }
 .cancelled .destination { text-decoration: line-through; text-decoration-thickness: 1.5px; }
