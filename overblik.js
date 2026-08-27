@@ -38,8 +38,9 @@ const stBase = (kode) => String(kode || "").split("|")[0].replace(/\d+$/, "");
 /* Rejseplanens retningsnavne: "Odder (Letbane)" -> "Odder" osv. */
 const rpNavn = (n) => String(n || "").replace(/\s*\(Letbane\)\s*$/i, "")
   .replace(/^Aarhus Universitetshospital.*/i, "Universitetshospitalet");
-const BASE_NAVN = { "1": "Aarhus", "2": "Grenaa", "3": "Odder" };
-const vagtBase = (v) => BASE_NAVN[String(v || "").length === 5 ? String(v)[1] : String(v)[0]] || "";
+/* Tognr.-kolonnen er skjult (Kasper 27-08-2026) men koden er bevaret —
+   sæt VIS_TOGNR = true for at vise den igen. */
+const VIS_TOGNR = false;
 
 /* ---------- state ---------- */
 const S = {
@@ -305,8 +306,7 @@ function infoAfgange() {
 /* ---------- rendering ---------- */
 function vagtCelle(vagt, ekstra) {
   if (!vagt) return "<span class='mangler' title='Tognummeret findes ikke i dagens plan'>—</span>";
-  const base = vagtBase(vagt);
-  return "<strong>" + esc(vagt) + "</strong><small>" + esc([base, ekstra].filter(Boolean).join(" · ")) + "</small>";
+  return "<strong>" + esc(vagt) + "</strong>" + (ekstra ? "<small>" + esc(ekstra) + "</small>" : "");
 }
 
 function buildBoard() {
@@ -323,9 +323,10 @@ function buildBoard() {
     if (t && g.forsinkelse_min != null) rtLoeb[String(t.loeb)] = g;
   }
 
-  let html = "<thead><tr><th>Linje</th><th class='num'>Afgang</th><th>Til</th><th>Tognr.</th>" +
-    "<th>Løb" + (S.plan && S.plan.ms && Object.keys(S.plan.ms).length ? " / MS" : "") + "</th>" +
-    "<th>Vagt</th><th>Afgiver</th><th class='num'>Spor</th></tr></thead><tbody>";
+  let html = "<thead><tr><th class='c-linje'>Linje</th><th class='num c-afgang'>Afgang</th><th class='c-til'>Til</th>" +
+    (VIS_TOGNR ? "<th class='c-tognr'>Tognr.</th>" : "") +
+    "<th class='c-lobms'>Løb" + (S.plan && S.plan.ms && Object.keys(S.plan.ms).length ? " / MS" : "") + "</th>" +
+    "<th class='c-vagt'>Vagt</th><th class='c-afgiver'>Afgiver</th><th class='num c-spor'>Spor</th></tr></thead><tbody>";
 
   for (const { afgang, ankomst, infoRt } of afgange) {
     const linje = afgang.linje ? afgang.linje.toUpperCase()
@@ -375,8 +376,8 @@ function buildBoard() {
       "<td><span class='infoline " + linje.toLowerCase() + "'>" + linje + "</span></td>" +
       "<td class='departure num tnum'" + (bufTitel ? " title='" + esc(bufTitel) + "'" : "") + ">" + dep + "</td>" +
       "<td class='destination'>" + esc(afgang.til_navn || "?") + delvistNote + "</td>" +
-      "<td class='train tnum'>" + esc(afgang.tog || "—") + "</td>" +
-      "<td>" + (afgang.loeb
+      (VIS_TOGNR ? "<td class='train tnum'>" + esc(afgang.tog || "—") + "</td>" : "") +
+      "<td class='c-lobms'>" + (afgang.loeb
         ? "<span class='inforun'>" + esc(afgang.loeb) + "</span>" + (ms ? "<small>MS " + esc(ms) + "</small>" : "")
         : "<span class='mangler' title='Tognummeret findes ikke i dagens plan'>—</span>") + "</td>" +
       "<td class='vagt'>" + vagtCelle(afgang.vagt) + "</td>" +
@@ -386,7 +387,7 @@ function buildBoard() {
       "<td class='track num tnum'>" + (afgang.spor != null ? esc(afgang.spor) : "—") + "</td></tr>";
   }
   if (!afgange.length) {
-    html += "<tr><td colspan='8' class='infoempty'>" +
+    html += "<tr><td colspan='" + (VIS_TOGNR ? 8 : 7) + "' class='infoempty'>" +
       (S.plan ? "Ingen flere afgange fra Aarhus H lige nu." : "Ingen plandata tilgængelig.") + "</td></tr>";
   }
   board.innerHTML = html + "</tbody>";

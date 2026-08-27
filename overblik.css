@@ -66,16 +66,19 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .infotable th { padding: 9px 12px 8px; background: var(--info-head); color: var(--info-headink);
   border-bottom: 1px solid var(--info-border); font-size: clamp(10.5px, .64vw, 13px); font-weight: 750;
   letter-spacing: .055em; text-align: left; text-transform: uppercase; }
-.infotable th:nth-child(1) { width: 6%; }
-.infotable th:nth-child(2) { width: 14%; }
-.infotable th:nth-child(3) { width: 22%; }
-.infotable th:nth-child(4) { width: 9%; }
-.infotable th:nth-child(5) { width: 12%; }
-.infotable th:nth-child(6) { width: 14%; }
-.infotable th:nth-child(7) { width: 16%; }
-.infotable th:nth-child(8) { width: 7%; }
+/* Kolonnebredder pr. klasse (ikke nth-child), så Tognr.-kolonnen kan skjules/
+   vises med VIS_TOGNR uden at bredderne forskubbes. Summen < 100 % når Tognr.
+   er skjult — resten fordeles automatisk (table-layout: fixed). */
+.infotable th.c-linje { width: 6%; }
+.infotable th.c-afgang { width: 14%; }
+.infotable th.c-til { width: 22%; }
+.infotable th.c-tognr { width: 9%; }
+.infotable th.c-lobms { width: 12%; }
+.infotable th.c-vagt { width: 14%; }
+.infotable th.c-afgiver { width: 16%; }
+.infotable th.c-spor { width: 7%; }
 .infotable th.num, .infotable td.num { text-align: right; }
-.infotable th:nth-child(5), .infotable td:nth-child(5) { text-align: center; }
+.infotable .c-lobms { text-align: center; }
 .infotable tbody tr { background: var(--info-row); }
 .infotable tbody tr:nth-child(even) { background: var(--info-alt); }
 .infotable tbody tr.cancelled { color: var(--info-muted); }
@@ -87,7 +90,7 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .infoline.l2 { background: #3f5c99; }
 .destination { font-size: clamp(19px, 1.25vw, 27px); font-weight: 750; line-height: 1.12; }
 .destination small, .vagt small, .handoff small, .inforun + small,
-.infotable td:nth-child(5) small { display: block; margin-top: 3px; color: var(--info-muted);
+.infotable td.c-lobms small { display: block; margin-top: 3px; color: var(--info-muted);
   font-size: clamp(10.5px, .64vw, 13px); font-weight: 550; }
 .destination .canceltext { color: var(--cancel); font-size: clamp(11px, .7vw, 14px);
   font-weight: 750; text-transform: uppercase; }
