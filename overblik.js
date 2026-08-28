@@ -447,15 +447,86 @@ async function opdater(medPlan) {
   buildBoard();
 }
 
-/* ---------- udseende: enkel sol/måne-toggle (ingen Auto-knap) ----------
-   Uden gemt valg følges systemet (head-scriptet sætter gemt tema før render
-   mod blink); et klik vipper til det modsatte af det man SER og gemmer det
-   under "tema" (light/dark). Ikonet viser det man skifter TIL.
-   ?tema=moerk|lys i URL'en sætter valget én gang (kiosk). */
+/* ---------- udseende: lys/mørk efter klokken + sol/måne-toggle ----------
+   Skema (Kasper 28-08-2026): mørk tilstand indledes kl. 20:00, lys kl. 05:40 —
+   begge som en gradvis overgang over 10 min. Under overgangen interpoleres
+   alle farve-tokens og sættes inline på :root hvert 5. sek. (tokens bor på
+   roden, så fadingen overlever tavle-genbygningen hvert 40. sek.; ~120 skridt
+   à <1 % er umærkelige). data-theme flipper ved 50 % og styrer kun det
+   token-løse (logo-crossfaden via --moerk sættes dog også inline). Head-
+   scriptet i index.html sætter samme klokke-tema før første maling mod blink.
+   Et klik på sol/måne gælder til næste planlagte skifte; ?tema=moerk|lys
+   fastlåser valget og slår skemaet fra (gemmes som "temaFast" i localStorage;
+   ?tema=auto fjerner låsen igen). */
+const TEMA_MOERK_FRA = 20 * 60;     // mørk indledes 20:00
+const TEMA_LYS_FRA = 5 * 60 + 40;   // lys indledes 05:40
+const TEMA_FADE_MIN = 10;           // overgangens længde i minutter
+const TEMA_TOKENS = {               // [lys, mørk] — spejl af overblik.css
+  "--info-bg": ["#f5f4ef", "#17191c"],
+  "--info-row": ["#fbfaf6", "#202328"],
+  "--info-alt": ["#e8e6df", "#292c31"],
+  "--info-ink": ["#24292f", "#f2f1ed"],
+  "--info-muted": ["#74716c", "#aaa7a1"],
+  "--info-head": ["#dedbd3", "#34373c"],
+  "--info-headink": ["#4f4d49", "#c7c5c0"],
+  "--info-border": ["#d7d4cc", "#3a3d43"],
+  "--info-grid": ["rgba(80,78,73,.11)", "rgba(255,255,255,.09)"],
+  "--cancel": ["#c92929", "#ff5f5f"],
+  "--accent": ["#3f5c99", "#5578c0"],
+  "--run-bg": ["#29333d", "#46505b"],
+  "--moerk": [0, 1],                // logo-crossfade (.infomark::before)
+};
+const temaFast = () => {
+  try { const t = localStorage.getItem("temaFast"); return t === "light" || t === "dark" ? t : null; }
+  catch (e) { return null; }
+};
 const moerkNu = () => {
   const t = document.documentElement.getAttribute("data-theme");
   return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
 };
+const klokkeMin = () => { const n = new Date(); return n.getHours() * 60 + n.getMinutes() + n.getSeconds() / 60; };
+
+/* 0 = helt lys, 1 = helt mørk, imellem = i overgang. min = klokkeminutter. */
+function moerkGrad(min) {
+  const fade = (fra) => Math.min(1, Math.max(0, (min - fra) / TEMA_FADE_MIN));
+  if (min >= TEMA_MOERK_FRA) return fade(TEMA_MOERK_FRA);
+  if (min < TEMA_LYS_FRA) return 1;
+  return 1 - fade(TEMA_LYS_FRA);
+}
+const temaFase = (g) => (g >= 0.5 ? "dark" : "light");
+
+function blandFarve(a, b, g) {
+  const parse = (s) => s[0] === "#"
+    ? [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16), 1]
+    : s.match(/rgba?\(([^)]+)\)/)[1].split(",").map(Number).concat(1).slice(0, 4);
+  const A = parse(a), B = parse(b);
+  const c = A.map((v, i) => v + (B[i] - v) * g);
+  return "rgba(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + "," + Math.round(c[3] * 1000) / 1000 + ")";
+}
+
+function rydTemaTokens() {
+  for (const k of Object.keys(TEMA_TOKENS)) document.documentElement.style.removeProperty(k);
+}
+function anvendTemaGrad(g) {
+  const st = document.documentElement.style;
+  if (g <= 0 || g >= 1) rydTemaTokens();      // helt lys/mørk: temablokkene alene
+  else for (const [k, [lys, moerk]] of Object.entries(TEMA_TOKENS))
+    st.setProperty(k, typeof lys === "number" ? String(lys + (moerk - lys) * g) : blandFarve(lys, moerk, g));
+  document.documentElement.setAttribute("data-theme", temaFase(g));
+  opdaterTemaIkon();
+}
+
+let temaManuel = null;   // fasen da der blev klikket — valget gælder til fasen skifter
+function tickTema() {
+  if (temaFast()) return;
+  const g = moerkGrad(klokkeMin());
+  if (temaManuel != null) {
+    if (temaFase(g) === temaManuel) return;   // planlagt skifte ikke nået endnu
+    temaManuel = null;
+  }
+  anvendTemaGrad(g);
+}
+
 function opdaterTemaIkon() {
   const btn = $("#themeBtn");
   btn.textContent = moerkNu() ? "☀" : "☾";
@@ -463,18 +534,24 @@ function opdaterTemaIkon() {
   btn.title = "Skift til " + til + " tilstand";
   btn.setAttribute("aria-label", "Skift til " + til + " tilstand");
 }
-function saetTema(t) {
-  document.documentElement.setAttribute("data-theme", t);
-  try { localStorage.setItem("tema", t); } catch (e) {}
-  opdaterTemaIkon();
-}
 function initTheme() {
   const p = new URLSearchParams(location.search).get("tema");
-  const fraUrl = { moerk: "dark", dark: "dark", lys: "light", light: "light" }[p];
-  if (fraUrl) saetTema(fraUrl);
-  opdaterTemaIkon();
-  $("#themeBtn").addEventListener("click", () => saetTema(moerkNu() ? "light" : "dark"));
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", opdaterTemaIkon);
+  const valg = { moerk: "dark", dark: "dark", lys: "light", light: "light" }[p];
+  try {
+    if (valg) localStorage.setItem("temaFast", valg);
+    else if (p === "auto") localStorage.removeItem("temaFast");
+    localStorage.removeItem("tema");   // nøglen fra før skemaet (28-08-2026)
+  } catch (e) {}
+  const fast = temaFast();
+  if (fast) { document.documentElement.setAttribute("data-theme", fast); opdaterTemaIkon(); }
+  else tickTema();
+  $("#themeBtn").addEventListener("click", () => {
+    temaManuel = temaFase(moerkGrad(klokkeMin()));
+    rydTemaTokens();
+    document.documentElement.setAttribute("data-theme", moerkNu() ? "light" : "dark");
+    try { if (temaFast()) localStorage.setItem("temaFast", moerkNu() ? "dark" : "light"); } catch (e) {}
+    opdaterTemaIkon();
+  });
 }
 
 /* Fuldskærms- og temaknappen fader væk i ro og vises ved musebevægelse —
@@ -508,6 +585,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => trim
 tickClock();
 opdater(true);
 setInterval(tickClock, 1000);
+setInterval(tickTema, 5 * 1000);                       // planlagt lys/mørk-overgang
 let resizeTimer = null;   // zoom udløser resize: genbyg så rækkeantallet passer
 window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(buildBoard, 200); });
 setInterval(() => opdater(false), 40 * 1000);          // realtid

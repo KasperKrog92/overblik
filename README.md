@@ -41,12 +41,18 @@ aldrig kommer lodret scrollbar — heller ikke ved kraftig zoom (rækkeantallet
 tilpasser sig i stedet; genberegnes ved resize/zoom).
 
 Driftsdøgnet skifter kl. 04 (som planen). Siden genindlæser sig selv ved
-døgnskiftet, så kioskskærmen kører uden betjening. Øverst til højre sidder ⛶
-(fuld skærm) med en sol/måne-toggle lige under (ingen Auto-knap; uden gemt
-valg følges systemet, og valget gemmes under localStorage-nøglen `tema`, som
-anti-blink-scriptet i `<head>` læser). Begge knapper fader væk når musen er i
-ro og kommer igen ved bevægelse, så skærmen står ren. `?tema=moerk` /
-`?tema=lys` i URL'en sætter valget til kioskbrug.
+døgnskiftet, så kioskskærmen kører uden betjening.
+
+**Lys/mørk følger klokken**: mørk tilstand indledes kl. 20:00 og lys kl.
+05:40, begge som en gradvis overgang over 10 min (alle farve-tokens
+interpoleres og sættes inline på `:root` hvert 5. sek., så fadingen overlever
+tavle-genbygningen; logoet crossfades via `--moerk`). Anti-blink-scriptet i
+`<head>` sætter samme klokke-tema før første maling. Øverst til højre sidder
+⛶ (fuld skærm) med en sol/måne-toggle lige under — et klik gælder til næste
+planlagte skifte (og kiosken genindlæser alligevel kl. 04). `?tema=moerk` /
+`?tema=lys` fastlåser valget og slår skemaet fra (localStorage-nøglen
+`temaFast`); `?tema=auto` fjerner låsen. Begge knapper fader væk når musen er
+i ro og kommer igen ved bevægelse, så skærmen står ren.
 
 ## Drift
 
