@@ -112,6 +112,13 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
   gap: 10px; white-space: nowrap; }
 .departure .cancelled-departure strong, .departure .cancelled-departure .planned { display: inline;
   margin: 0; font-size: clamp(26px, 1.85vw, 40px); font-weight: 820; }
+/* Forsinkelse: den planlagte tid bliver stående som det store tal, og "+N min"
+   står som rødt mærke til venstre — samme mønster som AFLYST-mærket. */
+.departure .delayed-departure { display: flex; align-items: baseline; justify-content: flex-end;
+  gap: 10px; white-space: nowrap; }
+.departure .delayed-departure strong { display: inline; margin: 0; }
+.departure .delayed-departure small { display: inline; margin: 0;
+  font-size: clamp(15px, 1vw, 20px); }
 .departure small { display: block; margin-top: 4px; color: var(--cancel);
   font-size: clamp(12px, .82vw, 16px); font-weight: 800; }
 .departure small.buffered { color: var(--info-muted); font-weight: 600; }

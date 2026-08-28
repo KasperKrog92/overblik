@@ -9,7 +9,10 @@ Designet er OCC Overbliks infoskærm (samme logik), men med **Vagt**/**Afgiver**
 i stedet for fører-kolonnerne, uden bynavne under vagtnumrene, og med
 Tognr.-kolonnen skjult bag flaget `VIS_TOGNR` i `overblik.js` (sæt `true` og
 bump `?v=` for at vise den igen). Typografien er sat op til læsning på afstand
-(storskærm) og skalerer med skærmbredden.
+(storskærm) og skalerer med skærmbredden. Afgang-kolonnen viser **altid den
+planlagte afgangstid** som det store tal; en forsinkelse står som et rødt
+"+N min"-mærke til venstre for tiden (samme mønster som AFLYST-mærket), og den
+forventede faktiske afgang ligger i cellens tooltip.
 
 ## Sådan virker den
 

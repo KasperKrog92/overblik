@@ -350,15 +350,20 @@ function buildBoard() {
     const delvistAflyst = !!(((cn && cn.delvist) || indAflyst) && !heltAflyst);
     const skifte = !!(ankomst && afgang.vagt && String(ankomst.vagt) !== String(afgang.vagt));
 
-    const bufTitel = bufret
+    const depTitel = bufret
       ? "Indgående tog +" + delay + " min, men " + vendetid + " min vendetid på Aarhus H"
         + (reelDelay > 0 ? " → reel afgangsforsinkelse " + reelDelay + " min."
           : " → afgår til tiden (forsinkelsen sluges af vendetiden).")
-      : "";
+      : reelDelay > 0
+        ? "Forsinket " + reelDelay + " min — forventet afgang " + fmtHM(afgang.afg_min + reelDelay) + "."
+        : "";
+    /* Afgang-kolonnen viser ALTID den planlagte tid som det store tal (Kasper
+       28-08-2026); en forsinkelse står som rødt "+N min"-mærke til venstre for
+       tiden — samme mønster som AFLYST-mærket. Forventet tid ligger i title. */
     const dep = heltAflyst
       ? "<span class='cancelled-departure'><strong>AFLYST</strong><time class='planned'>" + fmtHM(afgang.afg_min) + "</time></span>"
       : reelDelay > 0
-        ? "<time class='planned'>" + fmtHM(afgang.afg_min) + "</time><strong>" + fmtHM(afgang.afg_min + reelDelay) + "</strong><small>+" + reelDelay + " min</small>"
+        ? "<span class='delayed-departure'><small>+" + reelDelay + " min</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>"
         : bufret
           ? "<strong>" + fmtHM(afgang.afg_min) + "</strong><small class='buffered'>+" + delay + " i vendetid</small>"
           : "<strong>" + fmtHM(afgang.afg_min) + "</strong>";
@@ -374,7 +379,7 @@ function buildBoard() {
 
     html += "<tr class='" + (heltAflyst ? "cancelled" : delvistAflyst ? "partial" : "") + "'>" +
       "<td><span class='infoline " + linje.toLowerCase() + "'>" + linje + "</span></td>" +
-      "<td class='departure num tnum'" + (bufTitel ? " title='" + esc(bufTitel) + "'" : "") + ">" + dep + "</td>" +
+      "<td class='departure num tnum'" + (depTitel ? " title='" + esc(depTitel) + "'" : "") + ">" + dep + "</td>" +
       "<td class='destination'>" + esc(afgang.til_navn || "?") + delvistNote + "</td>" +
       (VIS_TOGNR ? "<td class='train tnum'>" + esc(afgang.tog || "—") + "</td>" : "") +
       "<td class='c-lobms'>" + (afgang.loeb
