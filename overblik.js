@@ -334,7 +334,21 @@ function buildBoard() {
     const ms = afgang.loeb ? msNr(afgang.loeb) : null;
     const cn = ((afgang.loeb && aflyst[String(afgang.loeb)]) || []).find((x) => String(x.tognr) === String(afgang.tog));
     const boardRealtime = infoRt && infoRt.forsinkelse_min != null ? infoRt : null;
-    const realtime = boardRealtime || rtTog.get(String(afgang.tog)) || (afgang.loeb && rtLoeb[String(afgang.loeb)]);
+    /* Kilder til forsinkelse, i faldende pålidelighed:
+       1) boardRealtime — afgangens EGEN prognose fra AR-DEP-tavlen (facit).
+       2) togMatch — et kørende tog der broadcaster afgangens eget tognummer.
+       3) løb-skøn (rtLoeb) — forsinkelsen på "det tog der kører på løbet nu".
+       (3) er kun et gæt og må KUN bruges, når det lånte tog faktisk er
+       afgiveren (samme tognr som den indgående ankomst). Ellers kan et fremmed
+       tog — fx efter et machine shift-/løb-bytte — smitte en spøgelses-
+       forsinkelse af på en afgang, Rejseplanen slet ingen prognose har på
+       (set 29-08-2026: 19:48 mod Grenaa vist +9 min i et par minutter, mens
+       Rejseplanens egen tavle viste den til tiden). */
+    const togMatch = rtTog.get(String(afgang.tog));
+    const loebSkoen = afgang.loeb ? rtLoeb[String(afgang.loeb)] : null;
+    const afgiverSkoen = loebSkoen && ankomst && String(loebSkoen.tognr) === String(ankomst.tog)
+      ? loebSkoen : null;
+    const realtime = boardRealtime || togMatch || afgiverSkoen;
     const delayValue = realtime ? Number(realtime.forsinkelse_min) : 0;
     const delay = Number.isFinite(delayValue) ? delayValue : 0;
     /* Vendetid på Aarhus H: tiden fra det indgående togs planlagte ankomst til

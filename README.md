@@ -30,9 +30,15 @@ To datakilder, begge uden backend:
    (CORS er åben). AR-afgangstavlen er facit for afgange, forsinkelser og
    aflysninger; ankomsttavlen fanger indadgående aflysninger (vises som
    "Indgående aflyst"); JourneyGeoPos/-Details giver løb-forsinkelser og
-   delvise aflysninger. Vendetid på Aarhus H trækkes fra forsinkelsen som på
-   den interne infoskærm. Endpointet er uofficielt — fejler det, viser siden
-   plantider.
+   delvise aflysninger. Vendetid på Aarhus H trækkes fra forsinkelsen. Har
+   afgangstavlen ikke selv en prognose på afgangen, bruges et **løb-skøn**
+   (forsinkelsen på det tog, der kører på løbet nu) — men **kun når det tog
+   faktisk er afgiveren** (samme tognr som den indgående ankomst). Ellers ville
+   et fremmed tog, fx efter et machine shift-/løb-bytte, kunne smitte en
+   spøgelses-forsinkelse af på en afgang, Rejseplanen slet ingen prognose har
+   på (set 29-08-2026: 19:48 mod Grenaa vist +9 min i et par min, mens
+   Rejseplanens egen tavle viste den til tiden). Endpointet er uofficielt —
+   fejler det, viser siden plantider.
 
 Der er ingen synlig statuslinje/footer (fjernet på Kaspers ønske) — plan- og
 realtidsstatus (inkl. fallback-/særplan-advarsler) ligger som tooltip på uret.
