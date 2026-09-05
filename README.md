@@ -23,7 +23,8 @@ To datakilder, begge uden backend:
    `scripts/overblik_publish.py` i hovedprojektet (privat repo). Fordi dagens
    faktiske vagtsæt hentes pr. dato, virker tavlen også på **særplandage**
    (events, sporarbejde) — dagen mærkes da "SÆRPLAN" og machine shift-numrene
-   udelades (de kendes kun for de faste man–tors-/fredagsplaner).
+   udelades (de kendes kun for de faste man–tors- og lørdagsplaner; fredag
+   er blanket siden planskiftet 01-09-2026, søndag er aldrig udledt).
    Mangler dagsfilen, falder siden tilbage til `data/fallback.json` (de fire
    faste dagtyper).
 2. **Realtid**: Rejseplanens HAFAS-endpoint kaldes direkte fra browseren
