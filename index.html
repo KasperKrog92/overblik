@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<script>/* førstemalings-tema mod blink: fastlåst valg (temaFast), ellers efter klokken — mørk 20:00-05:40 (midtpunkter 20:05/05:45 af 10 min-overgangen; skemaet i overblik.js overtager straks) */var t=null;try{t=localStorage.getItem("temaFast");}catch(e){}if(t!=="light"&&t!=="dark"){var n=new Date(),m=n.getHours()*60+n.getMinutes();t=(m>=1205||m<345)?"dark":"light";}document.documentElement.setAttribute("data-theme",t);</script>
+<script>/* førstemalings-tema mod blink: fastlåst valg (temaFast), ellers efter klokken — mørk 20:00-05:40 (samme skema som i overblik.js) */var t=null;try{t=localStorage.getItem("temaFast");}catch(e){}if(t!=="light"&&t!=="dark"){var n=new Date(),m=n.getHours()*60+n.getMinutes();t=(m>=1200||m<340)?"dark":"light";}document.documentElement.setAttribute("data-theme",t);</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <title>Afgangsoverblik · Aarhus H</title>
 <!-- ?v= bumpes ved HVER ændring af css/js: Cloudflare-proxyen edge-cacher
      .js/.css i op til 10 min (max-age=600), og uden versionering kan besøgende
      få ny HTML blandet med gammel JS/CSS (set 27-08-2026). Ny v = ny URL =
      frisk fil med det samme; selve HTML'en edge-caches ikke. -->
-<link rel="stylesheet" href="overblik.css?v=13">
+<link rel="stylesheet" href="overblik.css?v=14">
 </head>
 <body>
 <div class="infoboard" aria-live="polite">
@@ -37,6 +37,6 @@
   </div>
 </div>
 <noscript><p style="padding:20px">Afgangsoverblikket kræver JavaScript.</p></noscript>
-<script src="overblik.js?v=13"></script>
+<script src="overblik.js?v=14"></script>
 </body>
 </html>

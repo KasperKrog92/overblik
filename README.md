@@ -50,11 +50,11 @@ tilpasser sig i stedet; genberegnes ved resize/zoom).
 Driftsdøgnet skifter kl. 04 (som planen). Siden genindlæser sig selv ved
 døgnskiftet, så kioskskærmen kører uden betjening.
 
-**Lys/mørk følger klokken**: mørk tilstand indledes kl. 20:00 og lys kl.
-05:40, begge som en gradvis overgang over 10 min (alle farve-tokens
-interpoleres og sættes inline på `:root` hvert 5. sek., så fadingen overlever
-tavle-genbygningen; logoet crossfades via `--moerk`). Anti-blink-scriptet i
-`<head>` sætter samme klokke-tema før første maling. Øverst til højre sidder
+**Lys/mørk følger klokken**: mørk tilstand fra kl. 20:00 og lys fra kl.
+05:40 — skiftet er øjeblikkeligt (den gradvise 10 min-overgang blev fjernet
+05-09-2026, fordi den ikke så godt ud på skærmen). `data-theme` på `:root`
+tjekkes hvert 5. sek. og styrer alle farve-tokens inkl. logoet (`--moerk`).
+Anti-blink-scriptet i `<head>` sætter samme klokke-tema før første maling. Øverst til højre sidder
 ⛶ (fuld skærm) med en sol/måne-toggle lige under — et klik gælder til næste
 planlagte skifte (og kiosken genindlæser alligevel kl. 04). `?tema=moerk` /
 `?tema=lys` fastlåser valget og slår skemaet fra (localStorage-nøglen

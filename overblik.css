@@ -9,8 +9,7 @@
   --info-border:#d7d4cc; --info-grid:rgba(80,78,73,.11); --cancel:#c92929;
   --accent:#3f5c99;   /* navy fra logoet — samme som OCC Overbliks --accent */
   --run-bg:#29333d;   /* løb-pillen */
-  --moerk:0;          /* 0=lys, 1=mørk; imellem under den planlagte overgang
-                         (logo-crossfade via .infomark::before) */
+  --moerk:0;          /* 0=lys, 1=mørk (logo-skift via .infomark::before) */
 }
 :root[data-theme="dark"] {
   --info-bg:#17191c; --info-row:#202328; --info-alt:#292c31; --info-ink:#f2f1ed;
