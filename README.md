@@ -22,9 +22,13 @@ To datakilder, begge uden backend:
    `data/dage/<driftsdato>.json`, publiceret dagligt fra OnlinePlan af
    `scripts/overblik_publish.py` i hovedprojektet (privat repo). Fordi dagens
    faktiske vagtsæt hentes pr. dato, virker tavlen også på **særplandage**
-   (events, sporarbejde) — dagen mærkes da "SÆRPLAN" og machine shift-numrene
-   udelades (de kendes kun for de faste man–tors- og lørdagsplaner; fredag
-   er blanket siden planskiftet 01-09-2026, søndag er aldrig udledt).
+   (events, sporarbejde) — dagen mærkes da "SÆRPLAN". Machine shift-numrene
+   medtages ved match med en verificeret særplan: **7.–10. og 14.–17.
+   september 2026** er verificeret mod AVLS v302 (23 løb, start/slut matcher
+   præcist). Feedet kontrollerer perioden og alle løbs tidsvinduer ved hver
+   hentning; andre særplaner får ingen MS-numre. Faste man–tors- og
+   lørdagsplaner har egne tabeller; fredag er blanket siden 01-09-2026,
+   søndag er aldrig udledt.
    Mangler dagsfilen, falder siden tilbage til `data/fallback.json` (de fire
    faste dagtyper).
 2. **Realtid**: Rejseplanens HAFAS-endpoint kaldes direkte fra browseren

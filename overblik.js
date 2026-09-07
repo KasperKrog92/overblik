@@ -431,7 +431,7 @@ function buildStatus() {
   const dele = [];
   if (S.planKilde === "dag") {
     dele.push("Plan: OnlinePlan · hentet " + (S.plan.hentet || "").slice(0, 16).replace("T", " kl. ") +
-      (S.plan.saerplan ? " · SÆRPLAN (ingen MS-numre)" : ""));
+      (S.plan.saerplan ? " · SÆRPLAN" + (Object.keys(S.plan.ms || {}).length ? "" : " (ingen MS-numre)") : ""));
   } else if (S.planKilde === "fallback") {
     dele.push("OBS: dagens plan er ikke hentet fra OnlinePlan — viser fast " +
       S.plan.kalender_dagtype + "-plan (vagt/løb kan afvige på særplandage)");
