@@ -26,9 +26,9 @@ To datakilder, begge uden backend:
    medtages ved match med en verificeret særplan: **7.–10. og 14.–17.
    september 2026** er verificeret mod AVLS v302 (23 løb, start/slut matcher
    præcist). Feedet kontrollerer perioden og alle løbs tidsvinduer ved hver
-   hentning; andre særplaner får ingen MS-numre. Faste man–tors- og
-   lørdagsplaner har egne tabeller; fredag er blanket siden 01-09-2026,
-   søndag er aldrig udledt.
+   hentning; andre særplaner får ingen MS-numre. Faste man–tors-, fredags- og
+   lørdagsplaner har egne tabeller. Fredag er genudledt 11-09-2026 fra AVLS
+   (23 entydige løb; løb 1 har ét minuts forskel i sluttiden). Søndag er aldrig udledt.
    Mangler dagsfilen, falder siden tilbage til `data/fallback.json` (de fire
    faste dagtyper).
 2. **Realtid**: Rejseplanens HAFAS-endpoint kaldes direkte fra browseren
