@@ -23,8 +23,9 @@ To datakilder, begge uden backend:
    `scripts/overblik_publish.py` i hovedprojektet (privat repo). Fordi dagens
    faktiske vagtsæt hentes pr. dato, virker tavlen også på **særplandage**
    (events, sporarbejde) — dagen mærkes da "SÆRPLAN". Machine shift-numrene
-   medtages ved match med en verificeret særplan: **7.–10., 14.–17. og 21.–24.
-   september 2026** er verificeret mod AVLS v302 (23 løb, start/slut matcher
+   medtages ved match med en verificeret særplan: **7.–10., 14.–17., 21.–24.
+   september, 28. september–1. oktober og 5.–8. oktober 2026** er verificeret
+   mod AVLS v302 (23 løb, start/slut matcher
    præcist). Feedet kontrollerer perioden og alle løbs tidsvinduer ved hver
    hentning; andre særplaner får ingen MS-numre. Faste man–tors-, fredags- og
    lørdagsplaner har egne tabeller. Fredag er genudledt 11-09-2026 fra AVLS
