@@ -1,6 +1,8 @@
 /* Afgangsoverblik · Aarhus H — design overført fra OCC Overbliks infoskærm
    (server/web/css/table.css), tilpasset som selvstændig helskærmsside.
-   Lys/mørk følger systemet; ?tema=lys|moerk sætter data-theme eksplicit. */
+   Lys/mørk styres altid via data-theme på :root (klokke-skema, sol/måne-
+   toggle eller ?tema=lys|moerk) — head-scriptet i index.html sætter det før
+   første maling, så der er ingen prefers-color-scheme-blok her. */
 
 :root {
   color-scheme: light dark;
@@ -18,16 +20,6 @@
   --accent:#5578c0;
   --run-bg:#46505b;
   --moerk:1;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --info-bg:#17191c; --info-row:#202328; --info-alt:#292c31; --info-ink:#f2f1ed;
-    --info-muted:#aaa7a1; --info-head:#34373c; --info-headink:#c7c5c0;
-    --info-border:#3a3d43; --info-grid:rgba(255,255,255,.09); --cancel:#ff5f5f;
-    --accent:#5578c0;
-    --run-bg:#46505b;
-    --moerk:1;
-  }
 }
 
 * { box-sizing: border-box; }

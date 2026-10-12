@@ -14,7 +14,10 @@
 
 /* ---------- små hjælpere ---------- */
 const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+/* Escaper også ' — alle title-attributter står i enkelte anførselstegn og får
+   tekst fra Rejseplanen (retninger, stationsnavne). */
+const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const T = (s) => { if (!s) return null; const [h, m] = String(s).split(":").map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null; };
 /* Driftsdøgnet skifter kl. 04: tider før kl. 4 hører til foregående driftsdato. */
 const driftT = (s) => { const t = typeof s === "number" ? s : T(s); return t != null && t < 4 * 60 ? t + 1440 : t; };
@@ -49,10 +52,33 @@ const S = {
   planDato: null,      // driftsdatoen planen blev indlæst for
   tavle: [],           // flettede tavle-poster (AR-DEP facit for afgange)
   tog: [],             // JourneyGeoPos: kørende tog {jid, tognr?, forsinkelse_min, aflyst}
-  detaljer: {},        // jid -> JourneyDetails {tognr, aflyst, aflyste_stop} (cache)
+  detaljer: {},        // jid -> {ts, d: JourneyDetails {tognr, aflyst, aflyste_stop}} (cache)
+  idx: null,           // opslag bygget én gang pr. plan (se indekser)
   rtOk: false, rtSidst: null, rtFejl: null,
   sidsteDrift: driftsdatoISO(),
 };
+
+/* Netværkskald må aldrig hænge: et kald uden svar ville ellers blokere
+   opdateringen for altid, mens timerne blev ved med at starte nye. */
+const NET_TIMEOUT_MS = 10 * 1000;
+function medTimeout(url, opts = {}) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), NET_TIMEOUT_MS);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t));
+}
+/* Højst én kørsel ad gangen: kaldes fn mens den kører, deles det igangværende
+   løfte, så langsomme svar ikke kan overlappe og overskrive nyere data. */
+function enAdGangen(fn) {
+  let igang = null;
+  return () => igang || (igang = fn().finally(() => { igang = null; }));
+}
+
+/* Realtid ældre end dette ignoreres helt (fx ved netværksudfald), så gamle
+   forsinkelser og aflysninger ikke bliver hængende på skærmen. Korte udfald
+   dækkes af de seneste data. */
+const RT_MAX_ALDER_MS = 3 * 60 * 1000;
+const rtFrisk = () => !!S.rtSidst && Date.now() - S.rtSidst.getTime() < RT_MAX_ALDER_MS;
+const rtNu = () => (rtFrisk() ? { tavle: S.tavle, tog: S.tog } : { tavle: [], tog: [] });
 
 /* ---------- Rejseplanen (HAFAS mgate, uofficielt — fejl håndteres blødt) ---------- */
 const MGATE = "https://www.rejseplanen.dk/bin/iphone.exe";
@@ -67,7 +93,7 @@ async function mgate(meth, req) {
     formatted: false,
     svcReqL: [{ meth, req }],
   };
-  const r = await fetch(MGATE, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const r = await medTimeout(MGATE, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
   const svc = (j.svcResL || [])[0] || {};
@@ -165,18 +191,35 @@ async function hentGeoPos() {
       jid: jny.jid || null,
       retning: rpNavn(jny.dirTxt),
       forsinkelse_min: fors,
-      aflyst: !!jny.isCncl || stopL.some((s) => s.aCncl || s.dCncl),
+      /* stopL er kun de ~4 nærmeste stop: ét aflyst stop dér er en DELVIS
+         aflysning (fanges via JourneyDetails), ikke et aflyst tog. */
+      aflyst: !!jny.isCncl || (stopL.length > 0 && stopL.every((s) => s.aCncl || s.dCncl)),
     };
   });
 }
 
-/* JourneyDetails pr. jid (cache; højst `budget` nye kald pr. opdatering). */
-let detaljeBudget = 0;
+/* JourneyDetails pr. jid. Tognummeret ændrer sig aldrig, men delvise
+   aflysninger kan komme til undervejs, så en post ældre end DETALJE_TTL_MS
+   genhentes. Højst DETALJE_BUDGET kald pr. opdatering (parallelt); nye tog går
+   forud for genhentning, og ved fejl beholdes den gamle post. */
+const DETALJE_TTL_MS = 5 * 60 * 1000;
+const DETALJE_BUDGET = 5;
+async function hentDetaljer(geo) {
+  const nu = Date.now();
+  const nye = [], gamle = [];
+  for (const g of geo) {
+    if (!g.jid) continue;
+    const c = S.detaljer[g.jid];
+    if (!c) nye.push(g.jid);
+    else if (nu - c.ts >= DETALJE_TTL_MS) gamle.push(g.jid);
+  }
+  gamle.sort((a, b) => S.detaljer[a].ts - S.detaljer[b].ts);    // ældste først
+  await Promise.all(nye.concat(gamle).slice(0, DETALJE_BUDGET).map(detalje));
+  const aktive = new Set(geo.map((g) => g.jid));                // afsluttede ture ud
+  for (const jid of Object.keys(S.detaljer)) if (!aktive.has(jid)) delete S.detaljer[jid];
+}
+
 async function detalje(jid) {
-  if (!jid) return null;
-  if (jid in S.detaljer) return S.detaljer[jid];
-  if (detaljeBudget <= 0) return null;
-  detaljeBudget--;
   try {
     const res = await mgate("JourneyDetails", { jid, getPolyline: false });
     const jny = res.journey || {};
@@ -190,21 +233,20 @@ async function detalje(jid) {
         if (loc.name) aflyste.push(rpNavn(loc.name));
       }
     }
-    const d = { tognr: (prod.prodCtx || {}).num || null, aflyst: !!jny.isCncl, aflyste_stop: aflyste };
-    S.detaljer[jid] = d;
-    return d;
-  } catch (e) { return null; }    // midlertidig fejl: cache ikke
+    S.detaljer[jid] = { ts: Date.now(),
+      d: { tognr: (prod.prodCtx || {}).num || null, aflyst: !!jny.isCncl, aflyste_stop: aflyste } };
+  } catch (e) { /* midlertidig fejl: behold evt. gammel post */ }
 }
 
-async function hentRt() {
-  detaljeBudget = 5;
+const hentRt = enAdGangen(async () => {
   try {
     const [dep, arr, geo] = await Promise.all([hentTavle("DEP"), hentTavle("ARR"), hentGeoPos()]);
-    S.tavle = fletTavler(dep, arr);
+    await hentDetaljer(geo);
     for (const g of geo) {                          // tognr på kørende tog (cachet)
-      const d = await detalje(g.jid);
-      if (d) { g.tognr = d.tognr; g.aflyste_stop = d.aflyste_stop; g.aflyst = g.aflyst || d.aflyst; }
+      const c = g.jid && S.detaljer[g.jid];
+      if (c) { g.tognr = c.d.tognr; g.aflyste_stop = c.d.aflyste_stop; g.aflyst = g.aflyst || c.d.aflyst; }
     }
+    S.tavle = fletTavler(dep, arr);
     S.tog = geo;
     S.rtOk = true; S.rtFejl = null;
     S.rtSidst = new Date();
@@ -212,48 +254,73 @@ async function hentRt() {
     S.rtOk = false;
     S.rtFejl = String(e.message || e);
   }
-}
+});
 
 /* ---------- plan ---------- */
 const KAL_DAGTYPE = ["soendag", "man-tors", "man-tors", "man-tors", "man-tors", "fredag", "loerdag"];
-async function hentPlan() {
+function saetPlan(plan, kilde, dato) {
+  S.plan = plan; S.planKilde = kilde; S.planDato = dato;
+  S.idx = indekser(plan);
+}
+
+/* Opslag bygget én gang pr. plan, i stedet for at gennemsøge alle ture for
+   hver række ved hver opdatering. */
+function indekser(plan) {
+  const tog = new Map();          // tognr -> [ture]
+  const arAnk = new Map();        // løb -> ture der ender på Aarhus H (ikke gentagne)
+  const arAfg = [], depot = [];
+  for (const t of (plan && plan.ture) || []) {
+    const k = String(t.tog);
+    if (!tog.has(k)) tog.set(k, []);
+    tog.get(k).push(t);
+    if (stBase(t.fra) === "AR") arAfg.push(t);
+    if (stBase(t.til) === "AR" && !t.gentaget) {
+      const l = String(t.loeb);
+      if (!arAnk.has(l)) arAnk.set(l, []);
+      arAnk.get(l).push(t);
+      if (t.depot) depot.push(t);
+    }
+  }
+  arAfg.sort((a, b) => driftT(a.afg) - driftT(b.afg));
+  return { tog, arAnk, arAfg, depot };
+}
+const IDX_TOM = indekser(null);
+const idx = () => S.idx || IDX_TOM;
+const turePaaTog = (tognr) => idx().tog.get(String(tognr)) || [];
+
+const hentPlan = enAdGangen(async () => {
   const dato = driftsdatoISO();
   try {
-    const r = await fetch("data/dage/" + dato + ".json", { cache: "no-store" });
-    if (r.ok) {
-      S.plan = await r.json();
-      S.planKilde = "dag"; S.planDato = dato;
-      return;
-    }
+    const r = await medTimeout("data/dage/" + dato + ".json", { cache: "no-store" });
+    if (r.ok) { saetPlan(await r.json(), "dag", dato); return; }
   } catch (e) { /* falder videre til fallback */ }
   if (S.planKilde === "dag" && S.planDato === dato) return;   // behold hvad vi har
   try {
-    const r = await fetch("data/fallback.json", { cache: "no-store" });
+    const r = await medTimeout("data/fallback.json", { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
     const fb = await r.json();
     const dt = KAL_DAGTYPE[new Date(dato + "T12:00:00").getDay()];
-    S.plan = { dato, kalender_dagtype: dt, saerplan: false, fallback: true, ...fb.dagtyper[dt] };
-    S.planKilde = "fallback"; S.planDato = dato;
+    saetPlan({ dato, kalender_dagtype: dt, saerplan: false, fallback: true, ...fb.dagtyper[dt] }, "fallback", dato);
   } catch (e) {
-    if (S.planDato !== dato) { S.plan = null; S.planKilde = null; S.planDato = dato; }
+    if (S.planDato !== dato) saetPlan(null, null, dato);
   }
-}
+});
 
 /* ---------- afgange (porteret fra view-tabel.js:infoAfgange) ---------- */
 function msNr(loeb) { return (S.plan && S.plan.ms && S.plan.ms[String(loeb)]) || null; }
 
-function aflystPrLoeb() {
+function aflystPrLoeb(rt) {
   /* Aflyste ture pr. løb: tavleposter med aflyst -> plan-tur (fuld aflysning),
      kørende tog med skippede stop -> delvis. Bruges til "Delvist aflyst". */
   const ud = {};
   const put = (loeb, post) => { if (loeb != null) (ud[String(loeb)] = ud[String(loeb)] || []).push(post); };
-  const ture = (S.plan && S.plan.ture) || [];
-  const findTur = (tognr) => ture.filter((t) => String(t.tog) === String(tognr))[0] || null;
-  for (const r of S.tavle) {
+  const findTur = (tognr) => turePaaTog(tognr)[0] || null;
+  for (const r of rt.tavle) {
     if (!r.aflyst || !r.tognr) continue;
     const t = findTur(r.tognr);
     if (t) put(t.loeb, { tognr: r.tognr, delvist: false });
   }
-  for (const g of S.tog) {
+  for (const g of rt.tog) {
     if (!g.tognr || g.aflyst || !(g.aflyste_stop || []).length) continue;
     const t = findTur(g.tognr);
     if (t) put(t.loeb, { tognr: g.tognr, delvist: true, aflyste_stop: g.aflyste_stop });
@@ -261,24 +328,22 @@ function aflystPrLoeb() {
   return ud;
 }
 
-function infoAfgange() {
-  const alle = (S.plan && S.plan.ture) || [];
+function infoAfgange(rt) {
   const nm = nowMin();
   const medAnkomst = (afgang, infoRt = null) => {
     const dep = afgang.afg_min;      // alle kaldere sætter afg_min (driftsminutter)
-    const ankomst = alle
-      .filter((x) => String(x.loeb) === String(afgang.loeb) && stBase(x.til) === "AR" &&
-        !x.gentaget && driftT(x.ank) <= dep && dep - driftT(x.ank) <= 45)
-      .sort((a, b) => driftT(b.ank) - driftT(a.ank))[0] || null;
+    let ankomst = null;               // seneste AR-ankomst på løbet højst 45 min før afgangen
+    for (const x of idx().arAnk.get(String(afgang.loeb)) || []) {
+      const a = driftT(x.ank);
+      if (a <= dep && dep - a <= 45 && (!ankomst || a > driftT(ankomst.ank))) ankomst = x;
+    }
     return { afgang, ankomst, infoRt };
   };
 
-  const liveTavle = S.rtOk
-    ? S.tavle.filter((x) => x.tavle === "AR-DEP" && x.afg_plan != null && x.afg_plan >= nm - 1)
-      .sort((a, b) => a.afg_plan - b.afg_plan).slice(0, 12)
-    : [];
+  const liveTavle = rt.tavle.filter((x) => x.tavle === "AR-DEP" && x.afg_plan != null && x.afg_plan >= nm - 1)
+    .sort((a, b) => a.afg_plan - b.afg_plan).slice(0, 12);
   if (liveTavle.length) return medDepot(liveTavle.map((infoRt) => {
-    const plan = alle.filter((x) => String(x.tog) === String(infoRt.tognr))
+    const plan = turePaaTog(infoRt.tognr).slice()
       .sort((a, b) => Math.abs(driftT(a.afg) - infoRt.afg_plan) - Math.abs(driftT(b.afg) - infoRt.afg_plan))[0] || {};
     /* Tavlesvaret har ikke altid perronfeltet. På Aarhus H går sydgående L2 mod
        Mårslet/Odder fra spor 0; øvrige letbaneafgange fra spor 1. */
@@ -290,17 +355,14 @@ function infoAfgange() {
       tog: infoRt.tognr || plan.tog,
       afg: null, afg_min: infoRt.afg_plan,
       til_navn: retning, spor,
-      iPlan: !!plan.tog,
     }, infoRt);
-  }), nm);
+  }), nm, rt);
 
-  /* Fallback uden realtid: planens egne afgange fra Aarhus H. */
-  return medDepot(alle.filter((x) => stBase(x.fra) === "AR" && driftT(x.afg) >= nm - 1)
-    .sort((a, b) => driftT(a.afg) - driftT(b.afg))
+  /* Fallback uden realtid: planens egne afgange fra Aarhus H (forudsorteret). */
+  return medDepot(idx().arAfg.filter((x) => driftT(x.afg) >= nm - 1)
     .slice(0, 12).map((afgang) => medAnkomst({
-      ...afgang, afg_min: driftT(afgang.afg), til_navn: stNavn(afgang.til),
-      spor: null, iPlan: true,
-    })), nm);
+      ...afgang, afg_min: driftT(afgang.afg), til_navn: stNavn(afgang.til), spor: null,
+    })), nm, rt);
 }
 
 /* Depotkørsler (Kasper 12-10-2026): ture der ender på Aarhus H og derefter
@@ -310,17 +372,15 @@ function infoAfgange() {
    efter den sidste viste afgang udelades, når listen allerede er fuld, så der
    ikke opstår huller i tidsforløbet. Realtid = ankomsttavlens post for turens
    eget tognummer (forsinkelse/aflyst). */
-function medDepot(afgange, nm) {
-  const ture = (S.plan && S.plan.ture) || [];
+function medDepot(afgange, nm, rt) {
   const graense = afgange.length >= 12 ? afgange[afgange.length - 1].afgang.afg_min : Infinity;
-  const depot = ture
-    .filter((x) => x.depot && stBase(x.til) === "AR" && !x.gentaget &&
-      driftT(x.ank) >= nm - 1 && driftT(x.ank) <= graense)
+  const depot = idx().depot
+    .filter((x) => driftT(x.ank) >= nm - 1 && driftT(x.ank) <= graense)
     .map((x) => {
-      const infoRt = S.tavle.find((r) => r.tognr && String(r.tognr) === String(x.tog)) || null;
+      const infoRt = rt.tavle.find((r) => r.tognr && String(r.tognr) === String(x.tog)) || null;
       return {
         afgang: { ...x, afg_min: driftT(x.ank), til_navn: "Depot",
-          spor: infoRt ? (infoRt.spor_rt || infoRt.spor_plan) : null, iPlan: true },
+          spor: infoRt ? (infoRt.spor_rt || infoRt.spor_plan) : null },
         ankomst: null, infoRt,
       };
     });
@@ -337,15 +397,15 @@ function vagtCelle(vagt, ekstra) {
 
 function buildBoard() {
   const board = $("#board");
-  const afgange = infoAfgange();
-  const aflyst = aflystPrLoeb();
-  const rtTog = new Map(S.tog.filter((x) => x.tognr).map((x) => [String(x.tognr), x]));
-  const ture = (S.plan && S.plan.ture) || [];
+  const rt = rtNu();                // tom hvis realtiden er forældet
+  const afgange = infoAfgange(rt);
+  const aflyst = aflystPrLoeb(rt);
+  const rtTog = new Map(rt.tog.filter((x) => x.tognr).map((x) => [String(x.tognr), x]));
   /* Løb -> aktuel forsinkelse (det kørende tog på løbet nu): fallback-estimat
      for kommende afgange, hvor det indgående tog har et andet tognummer. */
   const rtLoeb = {};
   for (const [tognr, g] of rtTog) {
-    const t = ture.filter((x) => String(x.tog) === tognr)[0];
+    const t = turePaaTog(tognr)[0];
     if (t && g.forsinkelse_min != null) rtLoeb[String(t.loeb)] = g;
   }
 
@@ -396,7 +456,7 @@ function buildBoard() {
         + (reelDelay > 0 ? " → reel afgangsforsinkelse " + reelDelay + " min."
           : " → afgår til tiden (forsinkelsen sluges af vendetiden).")
       : reelDelay > 0
-        ? "Forsinket " + reelDelay + " min — forventet afgang " + fmtHM(afgang.afg_min + reelDelay) + "."
+        ? "Forsinket " + reelDelay + " min, forventet afgang " + fmtHM(afgang.afg_min + reelDelay) + "."
         : "";
     /* Afgang-kolonnen viser ALTID den planlagte tid som det store tal (Kasper
        28-08-2026); en forsinkelse står som rødt "+N min"-mærke til venstre for
@@ -488,25 +548,47 @@ function buildStatus() {
     dele.push("Plan: OnlinePlan · hentet " + (S.plan.hentet || "").slice(0, 16).replace("T", " kl. ") +
       (S.plan.saerplan ? " · SÆRPLAN" + (Object.keys(S.plan.ms || {}).length ? "" : " (ingen MS-numre)") : ""));
   } else if (S.planKilde === "fallback") {
-    dele.push("OBS: dagens plan er ikke hentet fra OnlinePlan — viser fast " +
+    dele.push("OBS: dagens plan er ikke hentet fra OnlinePlan. Viser fast " +
       S.plan.kalender_dagtype + "-plan (vagt/løb kan afvige på særplandage)");
   } else {
-    dele.push("OBS: ingen plandata — viser kun Rejseplanens tavle");
+    dele.push("OBS: ingen plandata, viser kun Rejseplanens tavle");
   }
-  dele.push(S.rtOk && S.rtSidst
-    ? "Realtid: Rejseplanen · opdateret " + S.rtSidst.toLocaleTimeString("da-DK")
-    : "OBS: realtid utilgængelig" + (S.rtSidst ? " (sidst " + S.rtSidst.toLocaleTimeString("da-DK") + ")" : "") +
-      " — viser plantider");
+  const sidst = S.rtSidst ? S.rtSidst.toLocaleTimeString("da-DK") : null;
+  dele.push(S.rtOk && sidst
+    ? "Realtid: Rejseplanen · opdateret " + sidst
+    : rtFrisk()
+      ? "OBS: seneste realtidsopdatering fejlede. Viser realtid fra " + sidst
+      : "OBS: realtid utilgængelig" + (sidst ? " (sidst " + sidst + ")" : "") + ", viser plantider");
   $("#clock").title = dele.join("\n");
 }
 
+const DATO_FMT = new Intl.DateTimeFormat("da-DK", { weekday: "long", day: "numeric", month: "long" });
+let visKlokke = null;
 function tickClock() {
   const n = new Date();
-  $("#clock").textContent = String(n.getHours()).padStart(2, "0") + ":" + String(n.getMinutes()).padStart(2, "0");
-  $("#date").textContent = new Intl.DateTimeFormat("da-DK", { weekday: "long", day: "numeric", month: "long" }).format(n);
-  /* Nyt driftsdøgn (kl. 04): genindlæs siden, så ny dagsfil og evt. nyt deploy
-     samles op — kiosk-skærmen kører i ugevis uden betjening. */
-  if (driftsdatoISO() !== S.sidsteDrift) location.reload();
+  const klokke = String(n.getHours()).padStart(2, "0") + ":" + String(n.getMinutes()).padStart(2, "0");
+  if (klokke !== visKlokke) {
+    visKlokke = klokke;
+    $("#clock").textContent = klokke;
+    $("#date").textContent = DATO_FMT.format(n);
+  }
+  if (driftsdatoISO() !== S.sidsteDrift) nytDriftsdoegn();
+}
+
+/* Nyt driftsdøgn (kl. 04): genindlæs siden, så ny dagsfil og evt. nyt deploy
+   samles op — kiosk-skærmen kører i ugevis uden betjening. Genindlæs KUN når
+   siden kan nås: et reload uden net giver browserens fejlside, hvor intet
+   script kører, og skærmen står død. Uden net hentes dagens plan i den kørende
+   side i stedet (dagsfil eller fallback), og reload forsøges igen om et minut. */
+let naesteGenindlaes = 0;
+async function nytDriftsdoegn() {
+  if (Date.now() < naesteGenindlaes) return;
+  naesteGenindlaes = Date.now() + 60 * 1000;
+  try {
+    const r = await medTimeout(location.href, { method: "HEAD", cache: "no-store" });
+    if (r.ok) { location.reload(); return; }
+  } catch (e) { /* offline: prøv igen om et minut */ }
+  if (S.planDato !== driftsdatoISO()) opdater(true);
 }
 
 /* ---------- opstart & timere ---------- */

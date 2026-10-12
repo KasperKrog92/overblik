@@ -49,6 +49,15 @@ To datakilder, begge uden backend:
    Rejseplanens egen tavle viste den til tiden). Endpointet er uofficielt —
    fejler det, viser siden plantider.
 
+   **Robusthed (12-10-2026):** alle kald har 10 s timeout, og der kører højst
+   én realtids-/planopdatering ad gangen. Realtid ældre end 3 min ignoreres
+   helt (også aflysninger, depotrækker og løb-skøn), så gamle forsinkelser
+   ikke hænger fast ved udfald. JourneyDetails (tognr + delaflyste stop)
+   caches pr. jid, men genhentes efter 5 min (højst 5 kald pr. opdatering,
+   parallelt), så delaflysninger der kommer til undervejs fanges. GeoPos'
+   `stopL` er kun de ~4 nærmeste stop: ét aflyst stop dér er en delvis
+   aflysning, ikke et aflyst tog.
+
 **Depotkørsler** (12-10-2026): ender et løb på Aarhus H og kører toget derefter i
 depot (CMY), vises det som en egen række "Depot" på ankomsttiden, flettet ind
 blandt afgangene — med noten "Vask + sand" eller "Parkering" (ren hensættelse
@@ -65,7 +74,10 @@ aldrig kommer lodret scrollbar — heller ikke ved kraftig zoom (rækkeantallet
 tilpasser sig i stedet; genberegnes ved resize/zoom).
 
 Driftsdøgnet skifter kl. 04 (som planen). Siden genindlæser sig selv ved
-døgnskiftet, så kioskskærmen kører uden betjening.
+døgnskiftet, så kioskskærmen kører uden betjening — men kun når siden kan nås
+(HEAD-tjek først): et reload uden net ville give browserens fejlside, hvor
+intet script kører. Uden net hentes dagens plan i den kørende side, og reload
+forsøges igen hvert minut.
 
 **Lys/mørk følger klokken**: mørk tilstand fra kl. 20:00 og lys fra kl.
 05:40 — skiftet er øjeblikkeligt (den gradvise 10 min-overgang blev fjernet
