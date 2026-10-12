@@ -49,6 +49,15 @@ To datakilder, begge uden backend:
    Rejseplanens egen tavle viste den til tiden). Endpointet er uofficielt —
    fejler det, viser siden plantider.
 
+**Depotkørsler** (12-10-2026): ender et løb på Aarhus H og kører toget derefter i
+depot (CMY), vises det som en egen række "Depot" på ankomsttiden, flettet ind
+blandt afgangene — med noten "Vask + sand" eller "Parkering" (ren hensættelse
+har ingen note). Vagt = føreren der kører toget ind; forsinkelse/aflysning
+kommer fra ankomsttavlens post for turens tognummer (ingen vendetid). Kilden
+er OnlinePlans synlige "Aarhus depot…"/"v+s"-række efter turen (markeret af
+`parse_vagt_fuld`); fallback-planen har ingen depotdata. Depotrækker efter den
+sidste viste afgang udelades, når tavlen er fuld.
+
 Der er ingen synlig statuslinje/footer (fjernet på Kaspers ønske) — plan- og
 realtidsstatus (inkl. fallback-/særplan-advarsler) ligger som tooltip på uret.
 Tavlen viser op til 12 afgange, men beskærer selv antallet af rækker, så der
@@ -101,6 +110,9 @@ uden versionering kan besøgende få ny HTML blandet med gammel JS/CSS (set
 `"gentaget": true` på en tur = tognummeret er genbrugt i samme vagt
 (pendul på særplaner); dens plan-tider er upålidelige (kendt OnlinePlan-
 begrænsning), så siden bruger dem ikke til vendetids-beregningen.
+
+`"depot": "vask" | "parkering" | "depot"` + `"depot_tid"` (ankomst CMY) på en tur
+= toget kører fra Aarhus H i depot efter turen.
 
 `data/fallback.json`: samme turformat pr. fast dagtype + MS-tabeller.
 Genereres med `python scripts/overblik_publish.py fallback` ved planskift.

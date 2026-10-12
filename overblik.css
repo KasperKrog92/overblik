@@ -130,6 +130,10 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .departure small.buffered { color: var(--info-muted); font-weight: 600; }
 .cancelled .departure strong, .partial .destination .canceltext { color: var(--cancel); }
 .cancelled .destination { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+/* Depotkørsel: toget ender på Aarhus H og kører i depot (CMY) — dæmpet
+   destination, så rækken skiller sig ud fra passagerafgangene. */
+.depot .destination { color: var(--info-muted); }
+.destination small.depotnote { color: var(--accent); font-weight: 750; }
 .infoempty { height: 160px; color: var(--info-muted); text-align: center; font-size: 15px; }
 
 @media (max-width: 900px) {

@@ -277,7 +277,7 @@ function infoAfgange() {
     ? S.tavle.filter((x) => x.tavle === "AR-DEP" && x.afg_plan != null && x.afg_plan >= nm - 1)
       .sort((a, b) => a.afg_plan - b.afg_plan).slice(0, 12)
     : [];
-  if (liveTavle.length) return liveTavle.map((infoRt) => {
+  if (liveTavle.length) return medDepot(liveTavle.map((infoRt) => {
     const plan = alle.filter((x) => String(x.tog) === String(infoRt.tognr))
       .sort((a, b) => Math.abs(driftT(a.afg) - infoRt.afg_plan) - Math.abs(driftT(b.afg) - infoRt.afg_plan))[0] || {};
     /* Tavlesvaret har ikke altid perronfeltet. På Aarhus H går sydgående L2 mod
@@ -292,16 +292,42 @@ function infoAfgange() {
       til_navn: retning, spor,
       iPlan: !!plan.tog,
     }, infoRt);
-  });
+  }), nm);
 
   /* Fallback uden realtid: planens egne afgange fra Aarhus H. */
-  return alle.filter((x) => stBase(x.fra) === "AR" && driftT(x.afg) >= nm - 1)
+  return medDepot(alle.filter((x) => stBase(x.fra) === "AR" && driftT(x.afg) >= nm - 1)
     .sort((a, b) => driftT(a.afg) - driftT(b.afg))
     .slice(0, 12).map((afgang) => medAnkomst({
       ...afgang, afg_min: driftT(afgang.afg), til_navn: stNavn(afgang.til),
       spor: null, iPlan: true,
-    }));
+    })), nm);
 }
+
+/* Depotkørsler (Kasper 12-10-2026): ture der ender på Aarhus H og derefter
+   kører i depot (CMY) — markeret af publisheren ud fra OnlinePlans
+   "Aarhus depot…"-række efter turen (depot = vask | parkering | depot).
+   Vises som "Depot" på ankomsttiden, flettet ind blandt afgangene. Rækker
+   efter den sidste viste afgang udelades, når listen allerede er fuld, så der
+   ikke opstår huller i tidsforløbet. Realtid = ankomsttavlens post for turens
+   eget tognummer (forsinkelse/aflyst). */
+function medDepot(afgange, nm) {
+  const ture = (S.plan && S.plan.ture) || [];
+  const graense = afgange.length >= 12 ? afgange[afgange.length - 1].afgang.afg_min : Infinity;
+  const depot = ture
+    .filter((x) => x.depot && stBase(x.til) === "AR" && !x.gentaget &&
+      driftT(x.ank) >= nm - 1 && driftT(x.ank) <= graense)
+    .map((x) => {
+      const infoRt = S.tavle.find((r) => r.tognr && String(r.tognr) === String(x.tog)) || null;
+      return {
+        afgang: { ...x, afg_min: driftT(x.ank), til_navn: "Depot",
+          spor: infoRt ? (infoRt.spor_rt || infoRt.spor_plan) : null, iPlan: true },
+        ankomst: null, infoRt,
+      };
+    });
+  return afgange.concat(depot).sort((a, b) => a.afgang.afg_min - b.afgang.afg_min).slice(0, 12);
+}
+
+const DEPOT_NOTE = { vask: "Vask + sand", parkering: "Parkering" };
 
 /* ---------- rendering ---------- */
 function vagtCelle(vagt, ekstra) {
@@ -332,6 +358,7 @@ function buildBoard() {
     const linje = afgang.linje ? afgang.linje.toUpperCase()
       : (["Mårslet", "Odder", "Universitetshospitalet", "Lystrup", "Lisbjergskolen"].includes(afgang.til_navn) ? "L2" : "L1");
     const ms = afgang.loeb ? msNr(afgang.loeb) : null;
+    if (afgang.depot) { html += depotRaekke(afgang, infoRt, rtTog.get(String(afgang.tog)), linje, ms); continue; }
     const cn = ((afgang.loeb && aflyst[String(afgang.loeb)]) || []).find((x) => String(x.tognr) === String(afgang.tog));
     const boardRealtime = infoRt && infoRt.forsinkelse_min != null ? infoRt : null;
     /* Kilder til forsinkelse, i faldende pålidelighed:
@@ -412,6 +439,34 @@ function buildBoard() {
   board.innerHTML = html + "</tbody>";
   trimRows();
   buildStatus();
+}
+
+/* Én depotrække: toget ankommer Aarhus H (tiden = planlagt ankomst) og kører
+   i depot. Ingen vendetid — en forsinket ankomst forsinker depotkørslen 1:1.
+   Vagt = føreren der bringer toget ind; ingen afgiver. */
+function depotRaekke(afgang, infoRt, togMatch, linje, ms) {
+  const rt = infoRt && infoRt.forsinkelse_min != null ? infoRt : togMatch;
+  const delay = rt && Number.isFinite(Number(rt.forsinkelse_min)) ? Math.max(0, Number(rt.forsinkelse_min)) : 0;
+  const aflyst = !!(infoRt && infoRt.aflyst);
+  const note = DEPOT_NOTE[afgang.depot];
+  const titel = "Tog " + afgang.tog + " ankommer Aarhus H " + fmtHM(afgang.afg_min) +
+    " og kører i depot" + (afgang.depot_tid ? " (CMY " + fmtHM(driftT(afgang.depot_tid)) + ")" : "") +
+    (note ? " · " + note.toLowerCase() : "") +
+    (aflyst ? " · ankomsten er aflyst" : delay > 0 ? " · forsinket " + delay + " min" : "") + ".";
+  const dep = aflyst
+    ? "<span class='cancelled-departure'><strong>AFLYST</strong><time class='planned'>" + fmtHM(afgang.afg_min) + "</time></span>"
+    : delay > 0
+      ? "<span class='delayed-departure'><small>+" + delay + " min</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>"
+      : "<strong>" + fmtHM(afgang.afg_min) + "</strong>";
+  return "<tr class='depot" + (aflyst ? " cancelled" : "") + "' title='" + esc(titel) + "'>" +
+    "<td><span class='infoline " + linje.toLowerCase() + "'>" + linje + "</span></td>" +
+    "<td class='departure num tnum'>" + dep + "</td>" +
+    "<td class='destination'>Depot" + (note ? "<small class='depotnote'>" + esc(note) + "</small>" : "") + "</td>" +
+    (VIS_TOGNR ? "<td class='train tnum'>" + esc(afgang.tog || "—") + "</td>" : "") +
+    "<td class='c-lobms'><span class='inforun'>" + esc(afgang.loeb) + "</span>" + (ms ? "<small>MS " + esc(ms) + "</small>" : "") + "</td>" +
+    "<td class='vagt'>" + vagtCelle(afgang.vagt) + "</td>" +
+    "<td class='handoff'><span class='same'>—</span></td>" +
+    "<td class='track num tnum'>" + (afgang.spor != null ? esc(afgang.spor) : "—") + "</td></tr>";
 }
 
 /* Aldrig lodret scrollbar (Kasper 27-08-2026): passer alle rækker ikke i
