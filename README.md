@@ -26,8 +26,11 @@ To datakilder, begge uden backend:
    medtages ved match med en verificeret særplan: **7.–10., 14.–17., 21.–24.
    september, 28. september–1. oktober og 5.–8. oktober 2026** er verificeret
    mod AVLS v302 (23 løb, start/slut matcher
-   præcist). Feedet kontrollerer perioden og alle løbs tidsvinduer ved hver
-   hentning; andre særplaner får ingen MS-numre. Faste man–tors-, fredags- og
+   præcist). **Ikke-skoledagsplanen man–tors** (ferier/helligdage, 17 løb,
+   udledt 12-10-2026) er ikke datobundet og får MS-numre på alle man–tors-
+   datoer, hvor samtlige løbs tidsvinduer matcher. Feedet kontrollerer perioden
+   og alle løbs tidsvinduer ved hver hentning; andre særplaner får ingen
+   MS-numre. Faste man–tors-, fredags- og
    lørdagsplaner har egne tabeller. Fredag er genudledt 11-09-2026 fra AVLS
    (23 entydige løb; løb 1 har ét minuts forskel i sluttiden). Søndag er aldrig udledt.
    Mangler dagsfilen, falder siden tilbage til `data/fallback.json` (de fire
