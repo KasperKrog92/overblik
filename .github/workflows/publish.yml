@@ -1,0 +1,94 @@
+# Dagligt datafeed til overblik.kasper-krog.dk (afgangsoverblikket).
+#
+# Kører i DETTE offentlige repo, fordi offentlige repos har gratis Actions-
+# minutter. Koden hentes fra det private vagtplan-repo med læse-deploy-
+# nøglen VAGTPLAN_DEPLOY_KEY; login til OnlinePlan kommer fra de krypterede
+# secrets ONLINEPLAN_USER/ONLINEPLAN_PASS. Loggen er offentlig: scriptet
+# logger aldrig login, kodeord eller svarindhold (kun HTTP-status og antal),
+# og GitHub maskerer desuden alle secret-værdier.
+#
+# Kun schedule + workflow_dispatch — aldrig pull_request, så fremmede forks
+# aldrig kan køre noget med disse secrets.
+#
+# Cron er UTC; TZ=Europe/Copenhagen sikrer at scriptets driftsdato (skifter
+# kl. 04 lokal) regnes rigtigt. 03:20 UTC = 04:20/05:20 dansk tid — altid
+# efter driftsdøgnskiftet. Middagskørslen samler evt. planrettelser op.
+name: Publicér afgangsdata
+
+on:
+  schedule:
+    - cron: "20 3 * * *"
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  TZ: Europe/Copenhagen
+
+# Kun én kørsel må publicere ad gangen (også ved manuel start).
+concurrency:
+  group: overblik-publish
+  cancel-in-progress: false
+
+jobs:
+  publiser:
+    name: Publicér (forsøg 1/3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    # Fejlen tolereres kun, fordi næste job prøver igen. Sidste forsøg
+    # er obligatorisk, så et reelt udfald stadig giver en fejlnotifikation.
+    continue-on-error: true
+    outputs:
+      publiceret: ${{ steps.faerdig.outputs.publiceret }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+      - uses: ./.github/actions/publish
+        with:
+          vagtplan-key: ${{ secrets.VAGTPLAN_DEPLOY_KEY }}
+          onlineplan-user: ${{ secrets.ONLINEPLAN_USER }}
+          onlineplan-pass: ${{ secrets.ONLINEPLAN_PASS }}
+      - id: faerdig
+        name: Bekræft publicering
+        run: echo "publiceret=true" >> "$GITHUB_OUTPUT"
+
+  genforsoeg_2:
+    name: Publicér (forsøg 2/3)
+    needs: [publiser]
+    if: ${{ !cancelled() && needs.publiser.outputs.publiceret != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    continue-on-error: true
+    outputs:
+      publiceret: ${{ steps.faerdig.outputs.publiceret }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+      - uses: ./.github/actions/publish
+        with:
+          vagtplan-key: ${{ secrets.VAGTPLAN_DEPLOY_KEY }}
+          onlineplan-user: ${{ secrets.ONLINEPLAN_USER }}
+          onlineplan-pass: ${{ secrets.ONLINEPLAN_PASS }}
+      - id: faerdig
+        name: Bekræft publicering
+        run: echo "publiceret=true" >> "$GITHUB_OUTPUT"
+
+  genforsoeg_3:
+    name: Publicér (forsøg 3/3)
+    needs: [publiser, genforsoeg_2]
+    if: ${{ !cancelled() && needs.publiser.outputs.publiceret != 'true' && needs.genforsoeg_2.outputs.publiceret != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+      - uses: ./.github/actions/publish
+        with:
+          vagtplan-key: ${{ secrets.VAGTPLAN_DEPLOY_KEY }}
+          onlineplan-user: ${{ secrets.ONLINEPLAN_USER }}
+          onlineplan-pass: ${{ secrets.ONLINEPLAN_PASS }}

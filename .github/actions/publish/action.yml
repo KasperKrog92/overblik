@@ -1,0 +1,53 @@
+name: Publicér afgangsdata
+description: Ét publiceringsforsøg; workflowet gentager på en frisk runner ved fejl.
+inputs:
+  vagtplan-key:
+    required: true
+    description: Læse-deploy-key til det private vagtplan-repo
+  onlineplan-user:
+    required: true
+    description: OnlinePlan-brugernavn
+  onlineplan-pass:
+    required: true
+    description: OnlinePlan-kodeord
+runs:
+  using: composite
+  steps:
+    - name: Kontrollér forbindelsen til OnlinePlan
+      shell: bash
+      run: |
+        # Ingen login eller indhold i loggen. Opgiv hurtigt hvis denne
+        # runner ikke kan nå OnlinePlan, så næste job får en frisk maskine.
+        curl --fail --silent --show-error --output /dev/null \
+          --connect-timeout 10 --max-time 20 \
+          --retry 1 --retry-delay 15 --retry-all-errors \
+          --write-out 'OnlinePlan: HTTP %{http_code}, forbindelse %{time_connect}s, total %{time_total}s\n' \
+          https://onlineplan.dk/
+
+    # Koden til feedet ligger i det private vagtplan-repo og hentes kun ind
+    # på runneren; intet herfra committes til dette offentlige repo.
+    - name: Hent publiceringskoden (vagtplan, kun læsning)
+      uses: actions/checkout@v4
+      with:
+        repository: KasperKrog92/vagtplan
+        ssh-key: ${{ inputs.vagtplan-key }}
+        persist-credentials: false
+        path: vagtplan
+
+    # Scriptet skriver til <vagtplan>/overblik-site og pusher derfra med
+    # GITHUB_TOKEN (contents: write på dette repo).
+    - name: Hent overblik-repoet
+      uses: actions/checkout@v4
+      with:
+        path: vagtplan/overblik-site
+
+    - name: Hent dagsdata fra OnlinePlan og publicér
+      shell: bash
+      working-directory: vagtplan
+      env:
+        ONLINEPLAN_USER: ${{ inputs.onlineplan-user }}
+        ONLINEPLAN_PASS: ${{ inputs.onlineplan-pass }}
+      run: |
+        git -C overblik-site config user.name "plan-publish (GitHub Actions)"
+        git -C overblik-site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        python -u scripts/overblik_publish.py publiser --push
