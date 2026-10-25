@@ -30,9 +30,10 @@ To datakilder, begge uden backend:
    udledt 12-10-2026) er ikke datobundet og får MS-numre på alle man–tors-
    datoer, hvor samtlige løbs tidsvinduer matcher. Feedet kontrollerer perioden
    og alle løbs tidsvinduer ved hver hentning; andre særplaner får ingen
-   MS-numre. Faste man–tors-, fredags- og
-   lørdagsplaner har egne tabeller. Fredag er genudledt 11-09-2026 fra AVLS
-   (23 entydige løb; løb 1 har ét minuts forskel i sluttiden). Søndag er aldrig udledt.
+   MS-numre. Alle fire faste dagtyper har egne
+   tabeller. Fredag er genudledt 11-09-2026 fra AVLS
+   (23 entydige løb; løb 1 har ét minuts forskel i sluttiden); søndag er udledt
+   25-10-2026 (14 løb, ren bijektion).
    Mangler dagsfilen, falder siden tilbage til `data/fallback.json` (de fire
    faste dagtyper).
 2. **Realtid**: Rejseplanens HAFAS-endpoint kaldes direkte fra browseren
