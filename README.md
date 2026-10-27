@@ -1,13 +1,20 @@
 # Afgangsoverblik · Aarhus H — overblik.kasper-krog.dk
 
 Offentlig, statisk afgangstavle for letbanen på Aarhus H, bygget til den store
-skærm på OCC-kontoret. **Ingen persondata** — kun vagtnumre, løb, tognumre,
-machine shift-numre og tider (GDPR: førernavne og førernumre vises aldrig og
-findes ikke i repoet). Siden er markeret `noindex`.
+skærm på OCC-kontoret. **Ingen førernavne** — kun vagtnumre, førernumre, løb,
+tognumre, machine shift-numre og tider. Førernumrene blev tilføjet 27-10-2026
+efter Kaspers bevidste valg. Han blev gjort opmærksom på, at de er
+(pseudonyme) persondata, der bliver offentlige og bliver liggende i
+git-historikken. Navne vises aldrig og findes ikke i repoet. Siden er
+markeret `noindex`.
 
 Designet er OCC Overbliks infoskærm (samme logik), men med **Vagt**/**Afgiver**
-i stedet for fører-kolonnerne, uden bynavne under vagtnumrene, og med
-Tognr.-kolonnen skjult bag flaget `VIS_TOGNR` i `overblik.js` (sæt `true` og
+i stedet for fører-kolonnerne. Under vagtnummeret står førernummeret (ved
+oplæringspar begge, adskilt af "·"); i Afgiver står det før "ank HH:MM".
+Numrene stammer fra bemandingen på hentetidspunktet (~04:20 og ~12/13), så en
+omrokering senere på dagen ses først ved næste kørsel. Fallback-planen har ingen
+førernumre. Der er ingen bynavne under vagtnumrene, og
+Tognr.-kolonnen er skjult bag flaget `VIS_TOGNR` i `overblik.js` (sæt `true` og
 bump `?v=` for at vise den igen). Typografien er sat op til læsning på afstand
 (storskærm) og skalerer med skærmbredden. Afgang-kolonnen viser **altid den
 planlagte afgangstid** som det store tal; en forsinkelse står som et rødt
@@ -123,6 +130,7 @@ uden versionering kan besøgende få ny HTML blandet med gammel JS/CSS (set
  "kalender_dagtype": "man-tors", "saerplan": false,
  "ms": {"11": "262", "...": "..."},
  "vagter": ["1101", "..."],
+ "foerere": {"1101": ["62037"], "1102": ["62011", "62301"]},
  "ture": [{"vagt":"1101","loeb":"11","linje":"l2","tog":"13013",
            "afg":"04:31","fra":"AR1","ank":"05:03","til":"LP2"}]}
 ```

@@ -1,6 +1,6 @@
 "use strict";
 /* Afgangsoverblik · Aarhus H — offentlig, statisk udgave af OCC Overbliks
-   infoskærm. INGEN persondata: kun vagtnumre, løb, tognumre og tider.
+   infoskærm. INGEN førernavne: kun vagtnumre, førernumre, løb, tognumre og tider.
 
    Datakilder:
    - Plan: data/dage/<driftsdato>.json (publiceret dagligt fra OnlinePlan af
@@ -403,9 +403,18 @@ function medDepot(afgange, nm, rt) {
 const DEPOT_NOTE = { vask: "Vask + sand", parkering: "Parkering" };
 
 /* ---------- rendering ---------- */
+/* Førernummer/-numre under vagtnummeret (Kasper 27-10-2026) — fra dagsfilens
+   bemanding på hentetidspunktet; oplæringspar giver to numre. Fallback-planen
+   har ingen bemanding, og så vises kun vagtnummeret. */
+function foererNr(vagt) {
+  const nr = S.plan && S.plan.foerere && S.plan.foerere[String(vagt)];
+  return nr && nr.length ? nr.join(" · ") : "";
+}
+
 function vagtCelle(vagt, ekstra) {
   if (!vagt) return "<span class='mangler' title='Tognummeret findes ikke i dagens plan'>—</span>";
-  return "<strong>" + esc(vagt) + "</strong>" + (ekstra ? "<small>" + esc(ekstra) + "</small>" : "");
+  const under = [foererNr(vagt), ekstra].filter(Boolean).join(" · ");
+  return "<strong>" + esc(vagt) + "</strong>" + (under ? "<small>" + esc(under) + "</small>" : "");
 }
 
 function buildBoard() {

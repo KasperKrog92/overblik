@@ -97,6 +97,9 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
   background: var(--run-bg); color: #fff; font-size: clamp(20px, 1.45vw, 30px); font-weight: 800; }
 /* MS-nummeret under løb-pillen: skal kunne læses på storskærms-afstand. */
 .infotable td.c-lobms small { font-size: clamp(16px, 1.1vw, 22px); font-weight: 620; }
+/* Førernummeret under vagtnummeret: samme størrelse som MS-nummeret (Kasper 27-10-2026). */
+.vagt small, .handoff small { font-size: clamp(16px, 1.1vw, 22px); font-weight: 620;
+  font-variant-numeric: tabular-nums; }
 .vagt, .handoff { line-height: 1.15; }
 .vagt strong, .handoff strong { display: block; font-size: clamp(20px, 1.5vw, 31px);
   font-weight: 780; font-variant-numeric: tabular-nums; }
