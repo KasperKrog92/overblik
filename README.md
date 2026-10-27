@@ -50,6 +50,13 @@ To datakilder, begge uden backend:
    Rejseplanens egen tavle viste den til tiden). Endpointet er uofficielt —
    fejler det, viser siden plantider.
 
+   **Tognummer-afvigelser (27-10-2026):** Rejseplanen og OnlinePlan kan
+   nummerere samme tur forskelligt — man–tors er Mårslet→Lystrup kl. 18:31 tog
+   12121 på tavlen, men 13125 kl. 18:29 i OnlinePlan, så rækken stod uden
+   løb/vagt. Findes tavlens tognummer ikke i planen, matches nu en planafgang
+   fra Aarhus H mod samme endestation inden for ±3 min, hvis eget tognummer
+   ikke står på tavlen (`planMatch` i `infoAfgange`).
+
    **Robusthed (12-10-2026):** alle kald har 10 s timeout, og der kører højst
    én realtids-/planopdatering ad gangen. Realtid ældre end 3 min ignoreres
    helt (også aflysninger, depotrækker og løb-skøn), så gamle forsinkelser

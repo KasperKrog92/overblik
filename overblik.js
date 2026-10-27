@@ -342,8 +342,21 @@ function infoAfgange(rt) {
 
   const liveTavle = rt.tavle.filter((x) => x.tavle === "AR-DEP" && x.afg_plan != null && x.afg_plan >= nm - 1)
     .sort((a, b) => a.afg_plan - b.afg_plan).slice(0, 12);
+  /* Rejseplanen og OnlinePlan kan nummerere samme tur forskelligt (27-10-2026:
+     Mårslet→Lystrup 18:31 er tog 12121 på tavlen, men 13125 kl. 18:29 i
+     OnlinePlan). Findes tavlens tognummer ikke i planen, matches en planafgang
+     fra Aarhus H mod samme endestation inden for ±3 min, hvis eget tognummer
+     ikke står på tavlen. */
+  const paaTavle = new Set(rt.tavle.filter((x) => x.tavle === "AR-DEP" && x.tognr).map((x) => String(x.tognr)));
+  const planMatch = (infoRt) => {
+    const t = turePaaTog(infoRt.tognr);
+    if (t.length) return t;
+    return idx().arAfg.filter((x) => !paaTavle.has(String(x.tog))
+      && Math.abs(driftT(x.afg) - infoRt.afg_plan) <= 3 && stNavn(x.til) === infoRt.retning);
+  };
+
   if (liveTavle.length) return medDepot(liveTavle.map((infoRt) => {
-    const plan = turePaaTog(infoRt.tognr).slice()
+    const plan = planMatch(infoRt).slice()
       .sort((a, b) => Math.abs(driftT(a.afg) - infoRt.afg_plan) - Math.abs(driftT(b.afg) - infoRt.afg_plan))[0] || {};
     /* Tavlesvaret har ikke altid perronfeltet. På Aarhus H går sydgående L2 mod
        Mårslet/Odder fra spor 0; øvrige letbaneafgange fra spor 1. */
