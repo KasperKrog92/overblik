@@ -202,25 +202,49 @@ async function hentGeoPos() {
   });
 }
 
-/* JourneyDetails pr. jid. Tognummeret ændrer sig aldrig, men delvise
-   aflysninger kan komme til undervejs, så en post ældre end DETALJE_TTL_MS
-   genhentes. Højst DETALJE_BUDGET kald pr. opdatering (parallelt); nye tog går
-   forud for genhentning, og ved fejl beholdes den gamle post. */
+/* JourneyDetails pr. jid — for de kørende tog (GeoPos) OG de næste afgange på
+   AR-DEP-tavlen (afkortede ture, 28-10-2026). Tognummeret ændrer sig aldrig,
+   men delvise aflysninger kan komme til undervejs, så en post ældre end
+   DETALJE_TTL_MS genhentes. Højst DETALJE_BUDGET kald pr. opdatering
+   (parallelt); nye afgange på tavlen går forud for nye tog, og begge forud for
+   genhentning. Ved fejl beholdes den gamle post. Ca. 30 ture à 5 min ≈ 6 kald
+   pr. minut; budgettet giver op til 12. */
 const DETALJE_TTL_MS = 5 * 60 * 1000;
-const DETALJE_BUDGET = 5;
-async function hentDetaljer(geo) {
-  const nu = Date.now();
+const DETALJE_BUDGET = 8;
+const DETALJE_TAVLE = 12;            // så mange kommende AR-afgange følges
+async function hentDetaljer(geo, dep) {
+  const nu = Date.now(), nm = nowMin();
+  const tavle = dep.filter((r) => r.jid && !r.aflyst && r.afg_plan != null && r.afg_plan >= nm - 1)
+    .sort((a, b) => a.afg_plan - b.afg_plan).slice(0, DETALJE_TAVLE).map((r) => r.jid);
   const nye = [], gamle = [];
-  for (const g of geo) {
-    if (!g.jid) continue;
-    const c = S.detaljer[g.jid];
-    if (!c) nye.push(g.jid);
-    else if (nu - c.ts >= DETALJE_TTL_MS) gamle.push(g.jid);
+  for (const jid of new Set(tavle.concat(geo.map((g) => g.jid)))) {
+    if (!jid) continue;
+    const c = S.detaljer[jid];
+    if (!c) nye.push(jid);
+    else if (nu - c.ts >= DETALJE_TTL_MS) gamle.push(jid);
   }
   gamle.sort((a, b) => S.detaljer[a].ts - S.detaljer[b].ts);    // ældste først
   await Promise.all(nye.concat(gamle).slice(0, DETALJE_BUDGET).map(detalje));
-  const aktive = new Set(geo.map((g) => g.jid));                // afsluttede ture ud
+  const aktive = new Set(tavle.concat(geo.map((g) => g.jid)));  // afsluttede ture ud
   for (const jid of Object.keys(S.detaljer)) if (!aktive.has(jid)) delete S.detaljer[jid];
+}
+
+/* Afkortning efter Aarhus H ud fra stopforløbet: aflyste stop EFTER Aarhus H
+   (dem passagererne her kan nå). Er de sidste stop aflyst, ender turen ved
+   det sidste stop med ankomst — {til: "Hornslet"}; er kun mellemstop aflyst,
+   er til null (springer over). Aflyste stop før Aarhus H er den indgående
+   del og vises ikke her. */
+function afkortning(d) {
+  const stop = (d && d.stop) || [];
+  const ar = stop.findIndex((s) => s.navn === "Aarhus H");
+  if (ar < 0) return null;
+  const efter = stop.slice(ar + 1);
+  const aflyste = efter.filter((s) => s.ind).map((s) => s.navn);
+  if (!aflyste.length) return null;
+  let sidst = -1;
+  for (let i = efter.length - 1; i >= 0; i--) if (!efter[i].ind) { sidst = i; break; }
+  if (sidst < 0) return null;         // intet stop efter Aarhus H: hele afgangen er aflyst
+  return { til: sidst < efter.length - 1 ? efter[sidst].navn : null, aflyste };
 }
 
 async function detalje(jid) {
@@ -230,15 +254,14 @@ async function detalje(jid) {
     const common = res.common || {};
     const prod = (common.prodL || [])[jny.prodX] || {};
     const locL = common.locL || [];
-    const aflyste = [];
+    const aflyste = [], stop = [];
     for (const s of jny.stopL || []) {
-      if (s.aCncl || s.dCncl) {
-        const loc = locL[s.locX] || {};
-        if (loc.name) aflyste.push(rpNavn(loc.name));
-      }
+      const navn = rpNavn((locL[s.locX] || {}).name);
+      stop.push({ navn, ind: !!s.aCncl, ud: !!s.dCncl });
+      if ((s.aCncl || s.dCncl) && navn) aflyste.push(navn);
     }
     S.detaljer[jid] = { ts: Date.now(),
-      d: { tognr: (prod.prodCtx || {}).num || null, aflyst: !!jny.isCncl, aflyste_stop: aflyste } };
+      d: { tognr: (prod.prodCtx || {}).num || null, aflyst: !!jny.isCncl, aflyste_stop: aflyste, stop } };
   } catch (e) { /* midlertidig fejl: behold evt. gammel post */ }
 }
 
@@ -302,7 +325,7 @@ const hentRt = enAdGangen(async () => {
       doegn ? hentTavle("DEP", true).catch(() => []) : [],
       doegn ? hentTavle("ARR", true).catch(() => []) : []]);
     noterAflysninger([dep, arr, dDep, dArr]);
-    await hentDetaljer(geo);
+    await hentDetaljer(geo, dep);
     for (const g of geo) {                          // tognr på kørende tog (cachet)
       const c = g.jid && S.detaljer[g.jid];
       if (c) { g.tognr = c.d.tognr; g.aflyste_stop = c.d.aflyste_stop; g.aflyst = g.aflyst || c.d.aflyst; }
@@ -568,7 +591,11 @@ function buildBoard() {
     const heltAflyst = !!((infoRt && infoRt.aflyst) || (cn && !cn.delvist));
     /* Indgående aflyst, afgangen kører: afgangen er tillyst fra Aarhus H. */
     const indAflyst = !!(infoRt && infoRt.ind_aflyst && !heltAflyst);
-    const delvistAflyst = !!(cn && cn.delvist && !heltAflyst);
+    /* Afkortning/overspringning efter Aarhus H fra afgangens egne turdetaljer.
+       Findes de, er de facit; ellers bruges løb-opslaget fra de kørende tog. */
+    const det = infoRt && infoRt.jid ? S.detaljer[infoRt.jid] : null;
+    const aft = det && !heltAflyst ? afkortning(det.d) : null;
+    const delvistAflyst = !heltAflyst && (det ? !!aft : !!(cn && cn.delvist));
     const tillyst = !heltAflyst && !!infoRt && erTillyst("DEP", infoRt.tognr);
     const skifte = !!(ankomst && afgang.vagt && String(ankomst.vagt) !== String(afgang.vagt));
     const risiko = heltAflyst ? null : foererForsinket(afgang, ankomst, rt, rtTog, nowMin());
@@ -604,16 +631,24 @@ function buildBoard() {
       ? "<small class='tillysttext' title='" + esc("Delaflysning: den indgående tur"
           + (infoRt.ind_retning ? " fra " + infoRt.ind_retning : "") + " er aflyst, men afgangen mod "
           + afgang.til_navn + " er tillyst.") + "'>Tillyst fra Aarhus H</small>"
+      : aft && aft.til
+        ? ""                          // afkortet: står som "(Hornslet)" efter endestationen
       : delvistAflyst
-        ? "<small class='canceltext'" + (cn && cn.aflyste_stop && cn.aflyste_stop.length
-            ? " title='Springer over: " + esc(cn.aflyste_stop.join(", ")) + "'" : "") + ">Delvist aflyst</small>"
+        ? "<small class='canceltext'" + ((aft ? aft.aflyste : cn && cn.aflyste_stop || []).length
+            ? " title='Springer over: " + esc((aft ? aft.aflyste : cn.aflyste_stop).join(", ")) + "'" : "") +
+          ">Delvist aflyst</small>"
         : "";
+    /* Afkortet tur (Kasper 28-10-2026): "Grenaa (Hornslet)" — planlagt
+       endestation først, det sted toget faktisk vender i parentes. */
+    const tilHtml = esc(afgang.til_navn || "?") + (aft && aft.til
+      ? " <span class='afkortet' title='" + esc("Kører kun til " + aft.til + ". Aflyst: " + aft.aflyste.join(", ")) +
+        "'>(" + esc(aft.til) + ")</span>" : "");
 
     const titel = [tillyst ? "Afgangen var aflyst og er tillyst igen." : "", depTitel].filter(Boolean).join(" ");
     html += "<tr class='" + (heltAflyst ? "cancelled" : delvistAflyst ? "partial" : tillyst ? "reinstated" : "") + "'>" +
       "<td><span class='infoline " + linje.toLowerCase() + "'>" + linje + "</span></td>" +
       "<td class='departure num tnum'" + (titel ? " title='" + esc(titel) + "'" : "") + ">" + dep + "</td>" +
-      "<td class='destination'>" + esc(afgang.til_navn || "?") + delvistNote + "</td>" +
+      "<td class='destination'>" + tilHtml + delvistNote + "</td>" +
       (VIS_TOGNR ? "<td class='train tnum'>" + esc(afgang.tog || "—") + "</td>" : "") +
       "<td class='c-lobms'>" + (afgang.loeb
         ? "<span class='inforun'>" + esc(afgang.loeb) + "</span>" + (ms ? "<small>MS " + esc(ms) + "</small>" : "")

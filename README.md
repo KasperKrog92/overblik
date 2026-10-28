@@ -88,6 +88,19 @@ også fanges. Depotrækker får TILLYST ud fra ankomsttavlen. Er den indgående
 tur aflyst, men afgangen kører, står der nu grønt "Tillyst fra Aarhus H"
 (før rødt "Indgående aflyst").
 
+**Afkortede ture** (28-10-2026): Rejseplanens tavle siger ikke, hvor langt en
+afkortet tur kører — retningsteksten er den planlagte endestation, og tavlen
+har kun aflyst-flaget for Aarhus H-stoppet. Derfor hentes JourneyDetails
+(aflyst ind/ud pr. stop) også for de næste 12 afgange på AR-DEP (samme cache
+som for de kørende tog: 5 min, højst 8 kald pr. opdatering, nye afgange
+først). Er de sidste stop efter Aarhus H aflyst, vises turen som
+**"Grenaa (Hornslet)"** — planlagt endestation, og hvor toget faktisk ender i
+rød parentes (aflyste stop i tooltip). Er kun mellemstop aflyst, står der
+"Delvist aflyst" (springer over: … i tooltip). Aflyste stop før Aarhus H er den
+indgående del og tæller ikke her. Målt 28-10-2026: 11 kald pr. runde de to
+første runder, derefter 3–5. Forudsætter, at aflysningen ligger pr. stop i
+Rejseplanen (ikke som aflyst tur + ny tur) — endnu ikke set live.
+
 **Fører forsinket** (28-10-2026): ved førerskift kommer afgangens fører ofte
 med et andet tog end det, der holder klar. Er førerens forrige tur (seneste tur
 i vagten, der ender på Aarhus H før afgangen) forsinket mindst 4 min, så der er
