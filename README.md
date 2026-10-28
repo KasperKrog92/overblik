@@ -73,6 +73,30 @@ To datakilder, begge uden backend:
    `stopL` er kun de ~4 nærmeste stop: ét aflyst stop dér er en delvis
    aflysning, ikke et aflyst tog.
 
+**TILLYST** (28-10-2026): en afgang, der har stået aflyst og igen står som
+kørende på Rejseplanens tavle, får et grønt "TILLYST"-mærke til venstre for
+tiden (Midttrafiks kører-grøn `#068A1C`; samme mønster som AFLYST). Rejseplanen
+markerer ikke tillysninger, så siden husker pr. driftsdøgn i `localStorage`
+(`overblik.aflyst.<dato>`), hvilke tognumre den har set aflyst — begge
+tilstande skal ses i 2 opdateringer, før de tæller. Kun **tognummer-skift**
+tæller, ikke at et løb kører igen efter en aflyst periode: efter D&G aflyses i
+1-timesblokke, og afgangene efter en blok står som kørende, selvom næste blok
+blot ikke er besluttet endnu. Da tillysning kræver ≥ 1 times varsel (D&G R5,
+AUH undtaget), hentes hele døgnets AR-afgangs- og ankomsttavle (fra kl. 04,
+`dur 1439`) hver 3. opdatering (~2 min), så tillysninger uden for de 90 min
+også fanges. Depotrækker får TILLYST ud fra ankomsttavlen. Er den indgående
+tur aflyst, men afgangen kører, står der nu grønt "Tillyst fra Aarhus H"
+(før rødt "Indgående aflyst").
+
+**Fører forsinket** (28-10-2026): ved førerskift kommer afgangens fører ofte
+med et andet tog end det, der holder klar. Er førerens forrige tur (seneste tur
+i vagten, der ender på Aarhus H før afgangen) forsinket mindst 4 min, så der er
+højst 2 min tilbage til afgangen, står der orange "Fører forsinket +N" under
+vagtnummeret (detaljer i tooltip: tog, planlagt/forventet ankomst, hvor mange
+minutter føreren kommer for sent). Samme regel som "overtagelse i fare" i OCC
+Overblik. Kører føreren selv toget ind, dækker afgangsforsinkelsen det; vagter
+der starter fra CMC (ingen forrige tur) kan ikke vurderes.
+
 **Depotkørsler** (12-10-2026): ender et løb på Aarhus H og kører toget derefter i
 depot (CMY), vises det som en egen række "Depot" på ankomsttiden, flettet ind
 blandt afgangene — med noten "Vask + sand" eller "Parkering" (ren hensættelse

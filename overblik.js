@@ -111,10 +111,14 @@ function hafasMin(s) {
   return m;
 }
 
-async function hentTavle(typ) {
-  const res = await mgate("StationBoard", {
-    type: typ, stbLoc: { lid: LID_AR }, jnyFltrL: PROD_LETBANE, maxJny: 60, dur: 90,
-  });
+/* heleDoegn: hele driftsdøgnet fra kl. 04 (også kørte afgange) — bruges kun
+   til at spore aflyst/tillyst, så en tillysning ≥ 1 time ude (D&G R5) også
+   fanges, før afgangen når de næste 90 min. */
+async function hentTavle(typ, heleDoegn = false) {
+  const res = await mgate("StationBoard", heleDoegn
+    ? { type: typ, stbLoc: { lid: LID_AR }, jnyFltrL: PROD_LETBANE, maxJny: 500, dur: 1439,
+        date: driftsdatoISO().replace(/-/g, ""), time: "040000" }
+    : { type: typ, stbLoc: { lid: LID_AR }, jnyFltrL: PROD_LETBANE, maxJny: 60, dur: 90 });
   const prodL = (res.common || {}).prodL || [];
   return (res.jnyL || []).map((jny) => {
     const st = jny.stbStop || {};
@@ -238,9 +242,66 @@ async function detalje(jid) {
   } catch (e) { /* midlertidig fejl: behold evt. gammel post */ }
 }
 
+/* ---------- tillyst: aflyst → kører igen (Kasper 28-10-2026) ----------
+   Rejseplanen markerer ikke en tillysning; den ses kun som at et tognummer,
+   der stod aflyst, igen står som kørende. Siden husker derfor pr. driftsdøgn
+   (localStorage, så det overlever genindlæsning), hvad den har set aflyst.
+   Kun TOGNUMMER-skift tæller — ikke at et løb "kører igen" efter en aflyst
+   periode: efter D&G aflyses i 1-timesblokke, og afgangene efter en blok står
+   som kørende, selv om næste blok blot ikke er besluttet endnu.
+   Begge tilstande skal ses i TILLYST_BEKRAEFT opdateringer, så et enkelt
+   fejlsvar fra Rejseplanen ikke giver udslag. Nøgle: "DEP|tognr" / "ARR|tognr". */
+const TILLYST_BEKRAEFT = 2;
+const SPOR_PREFIKS = "overblik.aflyst.";
+const DAGSTAVLE_HVER = 3;            // hele døgnets tavler hver 3. opdatering (~2 min)
+let spor = { dato: null, t: {} };    // t: nøgle -> {a: aflyst-observationer, k: kørende siden sidste aflyst}
+let rtRunde = 0;
+
+function sporNu() {
+  const dato = driftsdatoISO();
+  if (spor.dato === dato) return spor.t;
+  spor = { dato, t: {} };
+  try {
+    spor.t = JSON.parse(localStorage.getItem(SPOR_PREFIKS + dato) || "{}") || {};
+    for (let i = localStorage.length - 1; i >= 0; i--) {        // gamle døgn ud
+      const k = localStorage.key(i);
+      if (k && k.startsWith(SPOR_PREFIKS) && k !== SPOR_PREFIKS + dato) localStorage.removeItem(k);
+    }
+  } catch (e) { /* uden localStorage huskes kun i den kørende side */ }
+  return spor.t;
+}
+
+/* Én observation pr. opdatering: alle tavler fra samme runde flettes først
+   (aflyst på én af dem = aflyst), så to tavler ikke tæller som to runder. */
+function noterAflysninger(lister) {
+  const runde = new Map();
+  for (const r of lister.flat()) {
+    if (!r.tognr) continue;
+    const k = r.tavle.slice(3) + "|" + r.tognr;
+    runde.set(k, !!runde.get(k) || r.aflyst);
+  }
+  const t = sporNu();
+  for (const [k, aflyst] of runde) {
+    const e = t[k];
+    if (aflyst) { t[k] = { a: (e ? e.a : 0) + 1, k: 0 }; }
+    else if (e && e.a) e.k++;
+  }
+  try { localStorage.setItem(SPOR_PREFIKS + spor.dato, JSON.stringify(t)); } catch (e) {}
+}
+
+const erTillyst = (typ, tognr) => {
+  const e = tognr && sporNu()[typ + "|" + tognr];
+  return !!e && e.a >= TILLYST_BEKRAEFT && e.k >= TILLYST_BEKRAEFT;
+};
+
 const hentRt = enAdGangen(async () => {
   try {
-    const [dep, arr, geo] = await Promise.all([hentTavle("DEP"), hentTavle("ARR"), hentGeoPos()]);
+    const doegn = rtRunde++ % DAGSTAVLE_HVER === 0;
+    const [dep, arr, geo, dDep, dArr] = await Promise.all([hentTavle("DEP"), hentTavle("ARR"), hentGeoPos(),
+      /* døgntavlerne er kun til sporingen: fejler de, kører resten videre */
+      doegn ? hentTavle("DEP", true).catch(() => []) : [],
+      doegn ? hentTavle("ARR", true).catch(() => []) : []]);
+    noterAflysninger([dep, arr, dDep, dArr]);
     await hentDetaljer(geo);
     for (const g of geo) {                          // tognr på kørende tog (cachet)
       const c = g.jid && S.detaljer[g.jid];
@@ -268,11 +329,15 @@ function saetPlan(plan, kilde, dato) {
 function indekser(plan) {
   const tog = new Map();          // tognr -> [ture]
   const arAnk = new Map();        // løb -> ture der ender på Aarhus H (ikke gentagne)
+  const vagt = new Map();         // vagt -> ture (til førerens forrige tur)
   const arAfg = [], depot = [];
   for (const t of (plan && plan.ture) || []) {
     const k = String(t.tog);
     if (!tog.has(k)) tog.set(k, []);
     tog.get(k).push(t);
+    const v = String(t.vagt);
+    if (!vagt.has(v)) vagt.set(v, []);
+    vagt.get(v).push(t);
     if (stBase(t.fra) === "AR") arAfg.push(t);
     if (stBase(t.til) === "AR" && !t.gentaget) {
       const l = String(t.loeb);
@@ -282,7 +347,7 @@ function indekser(plan) {
     }
   }
   arAfg.sort((a, b) => driftT(a.afg) - driftT(b.afg));
-  return { tog, arAnk, arAfg, depot };
+  return { tog, vagt, arAnk, arAfg, depot };
 }
 const IDX_TOM = indekser(null);
 const idx = () => S.idx || IDX_TOM;
@@ -411,10 +476,42 @@ function foererNr(vagt) {
   return nr && nr.length ? nr.join(" · ") : "";
 }
 
-function vagtCelle(vagt, ekstra) {
+function vagtCelle(vagt, ekstra, advarsel) {
   if (!vagt) return "<span class='mangler' title='Tognummeret findes ikke i dagens plan'>—</span>";
   const under = [foererNr(vagt), ekstra].filter(Boolean).join(" · ");
-  return "<strong>" + esc(vagt) + "</strong>" + (under ? "<small>" + esc(under) + "</small>" : "");
+  return "<strong>" + esc(vagt) + "</strong>" + (under ? "<small>" + esc(under) + "</small>" : "") +
+    (advarsel ? "<small class='foererwarn'>" + esc(advarsel) + "</small>" : "");
+}
+
+/* Fører forsinket (Kasper 28-10-2026; samme regel som "overtagelse i fare" i
+   server/vagtplan_app/afvigelser.py): ved førerskift kommer afgangens fører
+   med et ANDET tog end det, der holder klar. Er dét tog så forsinket, at der
+   er højst OVERTAGELSE_MARGIN min tilbage til afgangen, er afgangen i fare,
+   selv om toget selv er til tiden. Forsinkelser under FORSINKET_MIN ses bort
+   fra (jitter). Kører føreren selv toget ind, dækker afgangsforsinkelsen det. */
+const FORSINKET_MIN = 4;
+const OVERTAGELSE_MARGIN = 2;
+function foererForsinket(afgang, ankomst, rt, rtTog, nm) {
+  if (!afgang.vagt || afgang.gentaget) return null;
+  const dep = afgang.afg_min;
+  let forrige = null;                 // førerens seneste tur, der ankommer inden afgangen
+  for (const t of idx().vagt.get(String(afgang.vagt)) || []) {
+    const a = driftT(t.ank);
+    if (a != null && a <= dep && String(t.tog) !== String(afgang.tog)
+      && (!forrige || a > driftT(forrige.ank))) forrige = t;
+  }
+  if (!forrige || forrige.gentaget || stBase(forrige.til) !== "AR") return null;
+  if (ankomst && String(ankomst.tog) === String(forrige.tog)) return null;
+  const tavle = rt.tavle.find((r) => r.tognr && String(r.tognr) === String(forrige.tog) && r.forsinkelse_min != null);
+  const kilde = tavle || rtTog.get(String(forrige.tog));
+  if (!kilde || kilde.aflyst) return null;
+  const fors = Number(kilde.forsinkelse_min);
+  if (!Number.isFinite(fors) || fors < FORSINKET_MIN) return null;
+  const ank = driftT(forrige.ank);
+  if (ank + fors < nm) return null;   // føreren er allerede ankommet
+  const rest = dep - ank - fors;
+  if (rest > OVERTAGELSE_MARGIN) return null;
+  return { tog: forrige.tog, fra: stNavn(forrige.fra), ank, fors, rest };
 }
 
 function buildBoard() {
@@ -469,9 +566,16 @@ function buildBoard() {
     const reelDelay = delay > 0 && vendetid != null ? Math.max(0, delay - vendetid) : delay;
     const bufret = delay > 0 && reelDelay < delay;
     const heltAflyst = !!((infoRt && infoRt.aflyst) || (cn && !cn.delvist));
+    /* Indgående aflyst, afgangen kører: afgangen er tillyst fra Aarhus H. */
     const indAflyst = !!(infoRt && infoRt.ind_aflyst && !heltAflyst);
-    const delvistAflyst = !!(((cn && cn.delvist) || indAflyst) && !heltAflyst);
+    const delvistAflyst = !!(cn && cn.delvist && !heltAflyst);
+    const tillyst = !heltAflyst && !!infoRt && erTillyst("DEP", infoRt.tognr);
     const skifte = !!(ankomst && afgang.vagt && String(ankomst.vagt) !== String(afgang.vagt));
+    const risiko = heltAflyst ? null : foererForsinket(afgang, ankomst, rt, rtTog, nowMin());
+    const risikoTitel = risiko ? "Føreren (vagt " + afgang.vagt + ") kommer med tog " + risiko.tog +
+      (risiko.fra ? " fra " + risiko.fra : "") + ", planlagt ank. " + fmtHM(risiko.ank) + ", forsinket " +
+      risiko.fors + " min → " + fmtHM(risiko.ank + risiko.fors) + ". Afgang " + fmtHM(afgang.afg_min) + ": " +
+      (risiko.rest < 0 ? "føreren kommer " + (-risiko.rest) + " min for sent." : "kun " + risiko.rest + " min til overtagelsen.") : "";
 
     const depTitel = bufret
       ? "Indgående tog +" + delay + " min, men " + vendetid + " min vendetid på Aarhus H"
@@ -483,8 +587,13 @@ function buildBoard() {
     /* Afgang-kolonnen viser ALTID den planlagte tid som det store tal (Kasper
        28-08-2026); en forsinkelse står som rødt "+N min"-mærke til venstre for
        tiden — samme mønster som AFLYST-mærket. Forventet tid ligger i title. */
+    /* TILLYST: grønt mærke til venstre for tiden som AFLYST; en evt.
+       forsinkelse står under som rødt "+N min". */
     const dep = heltAflyst
       ? "<span class='cancelled-departure'><strong>AFLYST</strong><time class='planned'>" + fmtHM(afgang.afg_min) + "</time></span>"
+      : tillyst
+        ? "<span class='reinstated-departure'><small>TILLYST</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>" +
+          (reelDelay > 0 ? "<small>+" + reelDelay + " min</small>" : "")
       : reelDelay > 0
         ? "<span class='delayed-departure'><small>+" + reelDelay + " min</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>"
         : bufret
@@ -492,23 +601,25 @@ function buildBoard() {
           : "<strong>" + fmtHM(afgang.afg_min) + "</strong>";
 
     const delvistNote = indAflyst
-      ? "<small class='canceltext' title='" + esc("Delaflysning: den indgående tur"
+      ? "<small class='tillysttext' title='" + esc("Delaflysning: den indgående tur"
           + (infoRt.ind_retning ? " fra " + infoRt.ind_retning : "") + " er aflyst, men afgangen mod "
-          + afgang.til_navn + " er tillyst.") + "'>Indgående aflyst</small>"
+          + afgang.til_navn + " er tillyst.") + "'>Tillyst fra Aarhus H</small>"
       : delvistAflyst
         ? "<small class='canceltext'" + (cn && cn.aflyste_stop && cn.aflyste_stop.length
             ? " title='Springer over: " + esc(cn.aflyste_stop.join(", ")) + "'" : "") + ">Delvist aflyst</small>"
         : "";
 
-    html += "<tr class='" + (heltAflyst ? "cancelled" : delvistAflyst ? "partial" : "") + "'>" +
+    const titel = [tillyst ? "Afgangen var aflyst og er tillyst igen." : "", depTitel].filter(Boolean).join(" ");
+    html += "<tr class='" + (heltAflyst ? "cancelled" : delvistAflyst ? "partial" : tillyst ? "reinstated" : "") + "'>" +
       "<td><span class='infoline " + linje.toLowerCase() + "'>" + linje + "</span></td>" +
-      "<td class='departure num tnum'" + (depTitel ? " title='" + esc(depTitel) + "'" : "") + ">" + dep + "</td>" +
+      "<td class='departure num tnum'" + (titel ? " title='" + esc(titel) + "'" : "") + ">" + dep + "</td>" +
       "<td class='destination'>" + esc(afgang.til_navn || "?") + delvistNote + "</td>" +
       (VIS_TOGNR ? "<td class='train tnum'>" + esc(afgang.tog || "—") + "</td>" : "") +
       "<td class='c-lobms'>" + (afgang.loeb
         ? "<span class='inforun'>" + esc(afgang.loeb) + "</span>" + (ms ? "<small>MS " + esc(ms) + "</small>" : "")
         : "<span class='mangler' title='Tognummeret findes ikke i dagens plan'>—</span>") + "</td>" +
-      "<td class='vagt'>" + vagtCelle(afgang.vagt) + "</td>" +
+      "<td class='vagt'" + (risikoTitel ? " title='" + esc(risikoTitel) + "'" : "") + ">" +
+        vagtCelle(afgang.vagt, null, risiko ? "Fører forsinket +" + risiko.fors : "") + "</td>" +
       "<td class='handoff'>" + (skifte
         ? vagtCelle(ankomst.vagt, "ank " + fmtHM(driftT(ankomst.ank)))
         : "<span class='same'>—</span>") + "</td>" +
@@ -530,17 +641,22 @@ function depotRaekke(afgang, infoRt, togMatch, linje, ms) {
   const rt = infoRt && infoRt.forsinkelse_min != null ? infoRt : togMatch;
   const delay = rt && Number.isFinite(Number(rt.forsinkelse_min)) ? Math.max(0, Number(rt.forsinkelse_min)) : 0;
   const aflyst = !!(infoRt && infoRt.aflyst);
+  const tillyst = !aflyst && !!infoRt && erTillyst("ARR", afgang.tog);
   const note = DEPOT_NOTE[afgang.depot];
   const titel = "Tog " + afgang.tog + " ankommer Aarhus H " + fmtHM(afgang.afg_min) +
     " og kører i depot" + (afgang.depot_tid ? " (CMY " + fmtHM(driftT(afgang.depot_tid)) + ")" : "") +
     (note ? " · " + note.toLowerCase() : "") +
-    (aflyst ? " · ankomsten er aflyst" : delay > 0 ? " · forsinket " + delay + " min" : "") + ".";
+    (aflyst ? " · ankomsten er aflyst" : tillyst ? " · ankomsten var aflyst og er tillyst igen" : "") +
+    (!aflyst && delay > 0 ? " · forsinket " + delay + " min" : "") + ".";
   const dep = aflyst
     ? "<span class='cancelled-departure'><strong>AFLYST</strong><time class='planned'>" + fmtHM(afgang.afg_min) + "</time></span>"
+    : tillyst
+      ? "<span class='reinstated-departure'><small>TILLYST</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>" +
+        (delay > 0 ? "<small>+" + delay + " min</small>" : "")
     : delay > 0
       ? "<span class='delayed-departure'><small>+" + delay + " min</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>"
       : "<strong>" + fmtHM(afgang.afg_min) + "</strong>";
-  return "<tr class='depot" + (aflyst ? " cancelled" : "") + "' title='" + esc(titel) + "'>" +
+  return "<tr class='depot" + (aflyst ? " cancelled" : tillyst ? " reinstated" : "") + "' title='" + esc(titel) + "'>" +
     "<td><span class='infoline " + linje.toLowerCase() + "'>" + linje + "</span></td>" +
     "<td class='departure num tnum'>" + dep + "</td>" +
     "<td class='destination'>Depot" + (note ? "<small class='depotnote'>" + esc(note) + "</small>" : "") + "</td>" +

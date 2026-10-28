@@ -9,6 +9,8 @@
   --info-bg:#f5f4ef; --info-row:#fbfaf6; --info-alt:#e8e6df; --info-ink:#24292f;
   --info-muted:#74716c; --info-head:#dedbd3; --info-headink:#4f4d49;
   --info-border:#d7d4cc; --info-grid:rgba(80,78,73,.11); --cancel:#c92929;
+  --tillyst:#068a1c;  /* Midttrafiks "kører"-grøn (de midlertidige køreplaner) */
+  --warn:#b45f06;     /* fører forsinket */
   --accent:#3f5c99;   /* navy fra logoet — samme som OCC Overbliks --accent */
   --run-bg:#29333d;   /* løb-pillen */
   --moerk:0;          /* 0=lys, 1=mørk (logo-skift via .infomark::before) */
@@ -17,6 +19,7 @@
   --info-bg:#17191c; --info-row:#202328; --info-alt:#292c31; --info-ink:#f2f1ed;
   --info-muted:#aaa7a1; --info-head:#34373c; --info-headink:#c7c5c0;
   --info-border:#3a3d43; --info-grid:rgba(255,255,255,.09); --cancel:#ff5f5f;
+  --tillyst:#3fcf5a; --warn:#f0a04b;
   --accent:#5578c0;
   --run-bg:#46505b;
   --moerk:1;
@@ -123,6 +126,16 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .departure small { display: block; margin-top: 4px; color: var(--cancel);
   font-size: clamp(12px, .82vw, 16px); font-weight: 800; }
 .departure small.buffered { color: var(--info-muted); font-weight: 600; }
+/* Tillyst: grønt "TILLYST"-mærke til venstre for tiden — spejl af AFLYST/+N min. */
+.departure .reinstated-departure { display: flex; align-items: baseline; justify-content: flex-end;
+  gap: 10px; white-space: nowrap; }
+.departure .reinstated-departure strong { display: inline; margin: 0; }
+.departure .reinstated-departure small { display: inline; margin: 0; color: var(--tillyst);
+  font-size: clamp(20px, 1.4vw, 28px); }
+.destination .tillysttext { color: var(--tillyst); font-size: clamp(13px, .85vw, 17px);
+  font-weight: 750; text-transform: uppercase; }
+/* Fører forsinket: under vagtnummeret, samme størrelse som førernummeret. */
+.vagt small.foererwarn { color: var(--warn); font-weight: 780; }
 .cancelled .departure strong, .partial .destination .canceltext { color: var(--cancel); }
 .cancelled .destination { text-decoration: line-through; text-decoration-thickness: 1.5px; }
 /* Depotkørsel: toget ender på Aarhus H og kører i depot (CMY) — dæmpet
