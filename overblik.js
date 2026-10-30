@@ -317,6 +317,22 @@ const erTillyst = (typ, tognr) => {
   return !!e && e.a >= TILLYST_BEKRAEFT && e.k >= TILLYST_BEKRAEFT;
 };
 
+/* Kun den FØRSTE tillyste afgang i løbet får mærket (Kasper 30-10-2026):
+   tillyses et løb, skifter alle dets aflyste tognumre, men det er nok at se
+   det ved den første. Mærket undertrykkes, når løbets forrige afgang fra
+   Aarhus H (i planen) selv er tillyst — så en senere, ny tillysning i samme
+   løb efter en kørende eller stadig aflyst afgang får mærket igen. */
+function foersteTillyste(loeb, tid) {
+  if (loeb == null) return true;
+  let forrige = null;
+  for (const t of idx().arAfg) {
+    if (String(t.loeb) !== String(loeb)) continue;
+    if (driftT(t.afg) >= tid) break;    // arAfg er sorteret efter afgang
+    forrige = t;
+  }
+  return !forrige || !erTillyst("DEP", forrige.tog);
+}
+
 const hentRt = enAdGangen(async () => {
   try {
     const doegn = rtRunde++ % DAGSTAVLE_HVER === 0;
@@ -596,7 +612,8 @@ function buildBoard() {
     const det = infoRt && infoRt.jid ? S.detaljer[infoRt.jid] : null;
     const aft = det && !heltAflyst ? afkortning(det.d) : null;
     const delvistAflyst = !heltAflyst && (det ? !!aft : !!(cn && cn.delvist));
-    const tillyst = !heltAflyst && !!infoRt && erTillyst("DEP", infoRt.tognr);
+    const tillyst = !heltAflyst && !!infoRt && erTillyst("DEP", infoRt.tognr)
+      && foersteTillyste(afgang.loeb, afgang.afg_min);
     const skifte = !!(ankomst && afgang.vagt && String(ankomst.vagt) !== String(afgang.vagt));
     const risiko = heltAflyst ? null : foererForsinket(afgang, ankomst, rt, rtTog, nowMin());
     const risikoTitel = risiko ? "Føreren (vagt " + afgang.vagt + ") kommer med tog " + risiko.tog +
@@ -676,7 +693,8 @@ function depotRaekke(afgang, infoRt, togMatch, linje, ms) {
   const rt = infoRt && infoRt.forsinkelse_min != null ? infoRt : togMatch;
   const delay = rt && Number.isFinite(Number(rt.forsinkelse_min)) ? Math.max(0, Number(rt.forsinkelse_min)) : 0;
   const aflyst = !!(infoRt && infoRt.aflyst);
-  const tillyst = !aflyst && !!infoRt && erTillyst("ARR", afgang.tog);
+  const tillyst = !aflyst && !!infoRt && erTillyst("ARR", afgang.tog)
+    && foersteTillyste(afgang.loeb, afgang.afg_min);
   const note = DEPOT_NOTE[afgang.depot];
   const titel = "Tog " + afgang.tog + " ankommer Aarhus H " + fmtHM(afgang.afg_min) +
     " og kører i depot" + (afgang.depot_tid ? " (CMY " + fmtHM(driftT(afgang.depot_tid)) + ")" : "") +

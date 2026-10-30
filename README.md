@@ -84,7 +84,12 @@ tæller, ikke at et løb kører igen efter en aflyst periode: efter D&G aflyses 
 blot ikke er besluttet endnu. Da tillysning kræver ≥ 1 times varsel (D&G R5,
 AUH undtaget), hentes hele døgnets AR-afgangs- og ankomsttavle (fra kl. 04,
 `dur 1439`) hver 3. opdatering (~2 min), så tillysninger uden for de 90 min
-også fanges. Depotrækker får TILLYST ud fra ankomsttavlen. Er den indgående
+også fanges. **Kun løbets første tillyste afgang får mærket** (30-10-2026):
+når et løb tillyses, skifter alle dets aflyste tognumre, så mærket
+undertrykkes, hvis løbets forrige afgang fra Aarhus H i planen selv er tillyst.
+En ny tillysning senere i samme løb (efter en kørende eller stadig aflyst
+afgang) får mærket igen. Depotrækker får TILLYST ud fra ankomsttavlen efter
+samme regel. Er den indgående
 tur aflyst, men afgangen kører, står der nu grønt "Tillyst fra Aarhus H"
 (før rødt "Indgående aflyst").
 
