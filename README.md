@@ -156,7 +156,7 @@ i ro og kommer igen ved bevægelse, så skærmen står ren.
 | Domæne | `overblik.kasper-krog.dk` (styret af `CNAME`-filen — slet/ret ikke) |
 | DNS | CNAME-record: navn `overblik` → `kasperkrog92.github.io` |
 | HTTPS | GitHub udsteder certifikat automatisk når DNS-recorden svarer; slå derefter "Enforce HTTPS" til (repo → Settings → Pages) |
-| Dagligt datafeed | **GitHub Actions i det private vagtplan-repo** (`.github/workflows/overblik-publish.yml`): kører i skyen kl. ~04:20 og ~12/13 dansk tid, logger ind i OnlinePlan med krypterede Actions-secrets, bygger dagsfilerne og pusher hertil med en skrive-deploy-nøgle. Ingen lokal maskine involveret. |
+| Dagligt datafeed | **GitHub Actions i dette repo** (`.github/workflows/publish.yml`, siden 19-10-2026): kører i skyen kl. ~04:20 og ~12/13 dansk tid, henter koden fra det private vagtplan-repo med læse-nøglen `VAGTPLAN_DEPLOY_KEY`, logger ind i OnlinePlan med krypterede Actions-secrets, bygger dagsfilerne og pusher dem med `GITHUB_TOKEN`. Loggen er offentlig. Ingen lokal maskine involveret. |
 
 **Ved ændring af css/js: bump `?v=` på begge links i `index.html`.**
 Cloudflare-proxyen edge-cacher `.js`/`.css` i op til 10 min (max-age=600), så
