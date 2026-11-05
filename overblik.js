@@ -762,8 +762,10 @@ function trimRows() {
 
 /* ---------- driftsbeskeder nederst på tavlen (Kasper 05-11-2026) ----------
    Foldet ud: hele beskeden. Foldet sammen: én smal linje med overskriften, så
-   tavlen får rækkerne tilbage, men en ny besked stadig kan ses. Valget gemmes
-   pr. skærm og overlever det natlige reload. Flere beskeder skifter på tur;
+   tavlen får rækkerne tilbage. Valget gemmes pr. skærm og overlever det natlige
+   reload. En ny eller ændret besked folder banneret ud af sig selv og vises
+   først; sete beskeder huskes (beskedSet), så hverken et reload eller en besked,
+   der forsvinder fra tavlen og kommer igen uændret, åbner det. Flere beskeder skifter på tur;
    de ligger oven i hinanden i samme gittercelle, så banneret altid er lige så
    højt som den længste, og rækkerne ikke hopper ved hvert skift. Forældet
    realtid skjuler beskederne, så en afsluttet driftsforstyrrelse ikke hænger.
@@ -773,9 +775,27 @@ const BESKED_SKIFT_MS = 15 * 1000;
 const BESKED_PAUSE_MS = 2 * 60 * 1000;
 let beskedNoegle = null, beskedIdx = 0, beskedPauseTil = 0;
 
+const BESKED_HUSK = 50;              // så mange sete beskeder huskes pr. skærm
+
 const beskedFoldet = () => {
   try { return localStorage.getItem("beskedFoldet") === "1"; } catch (e) { return false; }
 };
+
+/* Returnerer de beskeder, skærmen ikke har set før, og husker dem. Første gang
+   (ingen husket liste) tæller intet som nyt, så en allerede foldet skærm ikke
+   springer op ved opdatering af siden. */
+function noterNyeBeskeder(liste) {
+  let sete = null;
+  try { sete = JSON.parse(localStorage.getItem("beskedSet")); } catch (e) {}
+  const foerste = !Array.isArray(sete);
+  const kendte = new Set(foerste ? [] : sete);
+  const nye = liste.filter((b) => !kendte.has(b.key));
+  if (nye.length) {
+    const ny = [...kendte, ...nye.map((b) => b.key)].slice(-BESKED_HUSK);
+    try { localStorage.setItem("beskedSet", JSON.stringify(ny)); } catch (e) {}
+  }
+  return foerste ? [] : nye;
+}
 
 function renderBeskeder() {
   const el = $("#besked"), liste = rtFrisk() ? S.him : [];
@@ -786,6 +806,12 @@ function renderBeskeder() {
     const forrige = beskedNoegle ? beskedNoegle.split("\n")[beskedIdx] : null;
     beskedIdx = liste.findIndex((b) => b.key === forrige);
     if (beskedIdx < 0) { beskedIdx = 0; beskedPauseTil = 0; }
+    const nye = noterNyeBeskeder(liste);
+    if (nye.length && beskedFoldet()) {
+      try { localStorage.setItem("beskedFoldet", "0"); } catch (e) {}
+      beskedIdx = liste.indexOf(nye[0]);     // listen er sorteret med nyeste først
+      beskedPauseTil = Date.now() + BESKED_SKIFT_MS;   // vises mindst ét helt skift
+    }
     beskedNoegle = noegle;
     $("#beskedTekst").innerHTML = liste.map((b) => "<div class='infomsg-item'>" +
       (b.head ? "<strong>" + esc(b.head) + "</strong>" : "") +

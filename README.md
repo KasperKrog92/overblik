@@ -135,7 +135,9 @@ hopper. Når banneret er foldet ud, dukker to pile op ved hover: de skifter besk
 i hånden og holder den valgte besked i 2 min., før det automatiske skift
 fortsætter. Klik på banneret folder det sammen til én smal linje med overskriften
 (`beskedFoldet` i `localStorage`, pr. skærm, overlever genindlæsning). Tavlen får
-rækkerne tilbage, når banneret er foldet. Forældet realtid (> 3 min) skjuler
+rækkerne tilbage, når banneret er foldet. En ny eller ændret besked folder det ud
+af sig selv og vises først; sete beskeder huskes (`beskedSet`, de seneste 50), så
+genindlæsning eller en uændret besked, der kommer igen, ikke åbner det. Forældet realtid (> 3 min) skjuler
 beskederne. Udvalget kan afvige fra Rejseplanens egen skærm, da kun beskeder
 knyttet til afgange/ankomster på tavlen de næste 90 min. kommer med.
 
