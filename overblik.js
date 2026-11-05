@@ -52,6 +52,7 @@ const S = {
   planDato: null,      // driftsdatoen planen blev indlæst for
   tavle: [],           // flettede tavle-poster (AR-DEP facit for afgange)
   tog: [],             // JourneyGeoPos: kørende tog {jid, tognr?, forsinkelse_min, aflyst}
+  him: [],             // driftsbeskeder fra Rejseplanen {key, head, text, start}
   detaljer: {},        // jid -> {ts, d: JourneyDetails {tognr, aflyst, aflyste_stop}} (cache)
   idx: null,           // opslag bygget én gang pr. plan (se indekser)
   rtOk: false, rtSidst: null, rtFejl: null,
@@ -120,7 +121,7 @@ async function hentTavle(typ, heleDoegn = false) {
         date: driftsdatoISO().replace(/-/g, ""), time: "040000" }
     : { type: typ, stbLoc: { lid: LID_AR }, jnyFltrL: PROD_LETBANE, maxJny: 60, dur: 90 });
   const prodL = (res.common || {}).prodL || [];
-  return (res.jnyL || []).map((jny) => {
+  const tavle = (res.jnyL || []).map((jny) => {
     const st = jny.stbStop || {};
     const prod = prodL[jny.prodX] || {};
     const plan = hafasMin(st.dTimeS || st.aTimeS);
@@ -137,6 +138,32 @@ async function hentTavle(typ, heleDoegn = false) {
       tavle: "AR-" + typ,
     };
   });
+  tavle.him = (res.common || {}).himL || [];   // driftsbeskeder for turene på tavlen
+  return tavle;
+}
+
+/* Driftsbeskeder (HIM): samme tekster som Rejseplanens egen infoskærm viser
+   nederst. Følger med i StationBoard-svaret, så de koster ingen ekstra kald.
+   Samme besked kommer igen for hver tur og kan have flere id'er, så der
+   dedupliceres på teksten. Poster uden tekst er knyttet til enkelte afgange og
+   udelades. Nyeste besked først: en aktuel driftsforstyrrelse går forud for en
+   varslet ændring, der har ligget i ugevis. */
+const rensHim = (s) => {
+  const doc = new DOMParser().parseFromString(String(s || "").replace(/<br\s*\/?>/gi, " "), "text/html");
+  return (doc.body.textContent || "").replace(/\s+/g, " ").trim();
+};
+function samlHim(raa) {
+  const set = new Map();
+  for (const h of raa) {
+    if (h.act === false) continue;
+    const head = rensHim(h.head), text = rensHim(h.text);
+    if (!head && !text) continue;
+    const start = String(h.sDate || "") + String(h.sTime || "").padStart(6, "0");
+    const key = head + "|" + text;
+    const eks = set.get(key);
+    if (!eks || start > eks.start) set.set(key, { key, head, text, start });
+  }
+  return [...set.values()].sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : 0));
 }
 
 /* Fletning DEP+ARR — porteret fra rejseplanen._hent_tavler: afgangstavlen er
@@ -346,6 +373,7 @@ const hentRt = enAdGangen(async () => {
       const c = g.jid && S.detaljer[g.jid];
       if (c) { g.tognr = c.d.tognr; g.aflyste_stop = c.d.aflyste_stop; g.aflyst = g.aflyst || c.d.aflyst; }
     }
+    S.him = samlHim(dep.him.concat(arr.him));
     S.tavle = fletTavler(dep, arr);
     S.tog = geo;
     S.rtOk = true; S.rtFejl = null;
@@ -554,6 +582,7 @@ function foererForsinket(afgang, ankomst, rt, rtTog, nm) {
 }
 
 function buildBoard() {
+  renderBeskeder();                 // før rækkerne: trimRows skal kende bannerets højde
   const board = $("#board");
   const rt = rtNu();                // tom hvis realtiden er forældet
   const afgange = infoAfgange(rt);
@@ -731,6 +760,58 @@ function trimRows() {
     body.deleteRow(body.rows.length - 1);
 }
 
+/* ---------- driftsbeskeder nederst på tavlen (Kasper 05-11-2026) ----------
+   Foldet ud: hele beskeden. Foldet sammen: én smal linje med overskriften, så
+   tavlen får rækkerne tilbage, men en ny besked stadig kan ses. Valget gemmes
+   pr. skærm og overlever det natlige reload. Flere beskeder skifter på tur;
+   de ligger oven i hinanden i samme gittercelle, så banneret altid er lige så
+   højt som den længste, og rækkerne ikke hopper ved hvert skift. Forældet
+   realtid skjuler beskederne, så en afsluttet driftsforstyrrelse ikke hænger. */
+const BESKED_SKIFT_MS = 15 * 1000;
+let beskedNoegle = null, beskedIdx = 0;
+
+const beskedFoldet = () => {
+  try { return localStorage.getItem("beskedFoldet") === "1"; } catch (e) { return false; }
+};
+
+function renderBeskeder() {
+  const el = $("#besked"), liste = rtFrisk() ? S.him : [];
+  const noegle = liste.map((b) => b.key).join("\n");
+  if (noegle !== beskedNoegle) {
+    beskedNoegle = noegle;
+    beskedIdx = 0;
+    $("#beskedTekst").innerHTML = liste.map((b) => "<div class='infomsg-item'>" +
+      (b.head ? "<strong>" + esc(b.head) + "</strong>" : "") +
+      (b.text ? "<p>" + esc(b.text) + "</p>" : "") + "</div>").join("");
+  }
+  el.hidden = !liste.length;
+  el.classList.toggle("collapsed", beskedFoldet());
+  const knap = $("#beskedKnap"), foldet = beskedFoldet();
+  knap.textContent = foldet ? "▴" : "▾";
+  knap.setAttribute("aria-expanded", String(!foldet));
+  knap.title = foldet ? "Vis hele beskeden" : "Fold beskeden sammen";
+  knap.setAttribute("aria-label", knap.title);
+  visBesked();
+}
+
+function visBesked() {
+  const dele = $("#beskedTekst").children;
+  for (let i = 0; i < dele.length; i++) dele[i].classList.toggle("active", i === beskedIdx);
+  $("#beskedSide").textContent = dele.length > 1 ? (beskedIdx + 1) + "/" + dele.length : "";
+}
+
+function initBeskeder() {
+  $("#besked").addEventListener("click", () => {
+    if (String(getSelection())) return;      // markering af tekst er ikke et klik
+    try { localStorage.setItem("beskedFoldet", beskedFoldet() ? "0" : "1"); } catch (e) {}
+    buildBoard();                            // rækkeantallet følger bannerets højde
+  });
+  setInterval(() => {
+    const n = $("#beskedTekst").children.length;
+    if (n > 1) { beskedIdx = (beskedIdx + 1) % n; visBesked(); }
+  }, BESKED_SKIFT_MS);
+}
+
 /* Ingen synlig statuslinje (fjernet 27-08-2026) — status ligger i stedet som
    tooltip på uret, så den stadig kan findes ved hover uden at fylde noget. */
 function buildStatus() {
@@ -878,6 +959,7 @@ function initFullscreen() {
 
 initTheme();
 initFullscreen();
+initBeskeder();
 for (const ev of ["mousemove", "pointerdown", "touchstart"])
   document.addEventListener(ev, visUiKnapper, { passive: true });
 /* Skrifter kan lande efter første render og ændre rækkehøjderne — efterbeskær. */

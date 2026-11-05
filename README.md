@@ -124,6 +124,19 @@ er OnlinePlans synlige "Aarhus depot…"/"v+s"-række efter turen (markeret af
 `parse_vagt_fuld`); fallback-planen har ingen depotdata. Depotrækker efter den
 sidste viste afgang udelades, når tavlen er fuld.
 
+**Driftsbeskeder** (05-11-2026): Rejseplanens driftsbeskeder (HIM) vises i et
+banner nederst på tavlen, som på Rejseplanens egen infoskærm. De følger med i
+AR-DEP-/AR-ARR-svaret (`common.himL`), så de koster ingen ekstra kald, og de
+kommer og går, når Midttrafik/Rejseplanen ændrer dem. Der dedupliceres på
+teksten, poster uden tekst udelades, HTML renses væk, og nyeste besked står
+først; siden bestemmer ikke selv indholdet. Flere beskeder skifter hvert 15. sek.
+med tæller ("1/2"), og banneret er lige så højt som den længste, så rækkerne ikke
+hopper. Klik på banneret folder det sammen til én smal linje med overskriften
+(`beskedFoldet` i `localStorage`, pr. skærm, overlever genindlæsning). Tavlen får
+rækkerne tilbage, når banneret er foldet. Forældet realtid (> 3 min) skjuler
+beskederne. Udvalget kan afvige fra Rejseplanens egen skærm, da kun beskeder
+knyttet til afgange/ankomster på tavlen de næste 90 min. kommer med.
+
 Der er ingen synlig statuslinje/footer (fjernet på Kaspers ønske) — plan- og
 realtidsstatus (inkl. fallback-/særplan-advarsler) ligger som tooltip på uret.
 Tavlen viser op til 12 afgange, men beskærer selv antallet af rækker, så der
