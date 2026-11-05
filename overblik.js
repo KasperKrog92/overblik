@@ -766,9 +766,12 @@ function trimRows() {
    pr. skærm og overlever det natlige reload. Flere beskeder skifter på tur;
    de ligger oven i hinanden i samme gittercelle, så banneret altid er lige så
    højt som den længste, og rækkerne ikke hopper ved hvert skift. Forældet
-   realtid skjuler beskederne, så en afsluttet driftsforstyrrelse ikke hænger. */
+   realtid skjuler beskederne, så en afsluttet driftsforstyrrelse ikke hænger.
+   Pilene (ved hover, kun foldet ud) skifter besked i hånden og holder den valgte
+   besked i BESKED_PAUSE_MS, før det automatiske skift fortsætter. */
 const BESKED_SKIFT_MS = 15 * 1000;
-let beskedNoegle = null, beskedIdx = 0;
+const BESKED_PAUSE_MS = 2 * 60 * 1000;
+let beskedNoegle = null, beskedIdx = 0, beskedPauseTil = 0;
 
 const beskedFoldet = () => {
   try { return localStorage.getItem("beskedFoldet") === "1"; } catch (e) { return false; }
@@ -778,8 +781,12 @@ function renderBeskeder() {
   const el = $("#besked"), liste = rtFrisk() ? S.him : [];
   const noegle = liste.map((b) => b.key).join("\n");
   if (noegle !== beskedNoegle) {
+    /* Samme besked bliver stående, hvis listen ændrer sig omkring den. Er den
+       væk, starter visningen forfra, og en evt. pause ophæves. */
+    const forrige = beskedNoegle ? beskedNoegle.split("\n")[beskedIdx] : null;
+    beskedIdx = liste.findIndex((b) => b.key === forrige);
+    if (beskedIdx < 0) { beskedIdx = 0; beskedPauseTil = 0; }
     beskedNoegle = noegle;
-    beskedIdx = 0;
     $("#beskedTekst").innerHTML = liste.map((b) => "<div class='infomsg-item'>" +
       (b.head ? "<strong>" + esc(b.head) + "</strong>" : "") +
       (b.text ? "<p>" + esc(b.text) + "</p>" : "") + "</div>").join("");
@@ -798,6 +805,14 @@ function visBesked() {
   const dele = $("#beskedTekst").children;
   for (let i = 0; i < dele.length; i++) dele[i].classList.toggle("active", i === beskedIdx);
   $("#beskedSide").textContent = dele.length > 1 ? (beskedIdx + 1) + "/" + dele.length : "";
+  $("#beskedForrige").hidden = $("#beskedNaeste").hidden = dele.length < 2;
+}
+
+function skiftBesked(retning) {
+  const n = $("#beskedTekst").children.length;
+  if (n < 2) return;
+  beskedIdx = (beskedIdx + retning + n) % n;
+  visBesked();
 }
 
 function initBeskeder() {
@@ -806,9 +821,15 @@ function initBeskeder() {
     try { localStorage.setItem("beskedFoldet", beskedFoldet() ? "0" : "1"); } catch (e) {}
     buildBoard();                            // rækkeantallet følger bannerets højde
   });
+  for (const [id, retning] of [["#beskedForrige", -1], ["#beskedNaeste", 1]]) {
+    $(id).addEventListener("click", (e) => {
+      e.stopPropagation();                   // pilen må ikke folde banneret sammen
+      beskedPauseTil = Date.now() + BESKED_PAUSE_MS;
+      skiftBesked(retning);
+    });
+  }
   setInterval(() => {
-    const n = $("#beskedTekst").children.length;
-    if (n > 1) { beskedIdx = (beskedIdx + 1) % n; visBesked(); }
+    if (Date.now() >= beskedPauseTil) skiftBesked(1);
   }, BESKED_SKIFT_MS);
 }
 

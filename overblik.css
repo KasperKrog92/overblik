@@ -163,6 +163,16 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
   font-size: clamp(14px, .95vw, 18px); font-weight: 650; }
 /* Knappen fader væk i ro som de andre knapper; hele banneret kan klikkes. */
 .infomsg-knap { position: static; width: 28px; height: 28px; font-size: 16px; }
+/* Pile til at skifte besked: vises ved hover og kun, når banneret er foldet ud.
+   Pladsen er altid reserveret, så teksten ikke ombrydes ved hover. */
+.infomsg-pil { width: 34px; height: 34px; padding: 0; display: grid; place-items: center;
+  border: 1px solid var(--info-border); border-radius: 6px; background: transparent; color: var(--info-ink);
+  font: inherit; font-size: 22px; line-height: 1; cursor: pointer; opacity: 0; pointer-events: none;
+  transition: opacity .15s ease, background .15s ease; }
+.infomsg-pil[hidden], .infomsg.collapsed .infomsg-pil { display: none; }
+.infomsg:hover .infomsg-pil, .infomsg-pil:focus-visible { opacity: 1; pointer-events: auto; }
+.infomsg-pil:hover { background: rgba(128,128,128,.14); }
+@media (hover: none) { .infomsg-pil { opacity: 1; pointer-events: auto; } }
 .infomsg.collapsed { padding-block: 4px; align-items: center; }
 .infomsg.collapsed .infomsg-item strong { overflow: hidden; color: var(--info-muted);
   font-size: clamp(14px, .95vw, 18px); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }

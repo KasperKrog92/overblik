@@ -11,7 +11,7 @@
      .js/.css i op til 10 min (max-age=600), og uden versionering kan besøgende
      få ny HTML blandet med gammel JS/CSS (set 27-08-2026). Ny v = ny URL =
      frisk fil med det samme; selve HTML'en edge-caches ikke. -->
-<link rel="stylesheet" href="overblik.css?v=21">
+<link rel="stylesheet" href="overblik.css?v=22">
 </head>
 <body>
 <div class="infoboard">
@@ -38,12 +38,14 @@
   <section class="infomsg" id="besked" aria-label="Driftsbeskeder" hidden>
     <div class="infomsg-tekst" id="beskedTekst"></div>
     <div class="infomsg-side">
+      <button class="infomsg-pil" id="beskedForrige" type="button" title="Forrige besked" aria-label="Forrige besked" hidden>‹</button>
       <span class="tnum" id="beskedSide"></span>
+      <button class="infomsg-pil" id="beskedNaeste" type="button" title="Næste besked" aria-label="Næste besked" hidden>›</button>
       <button class="infofullscreen infomsg-knap" id="beskedKnap" type="button"></button>
     </div>
   </section>
 </div>
 <noscript><p style="padding:20px">Afgangsoverblikket kræver JavaScript.</p></noscript>
-<script src="overblik.js?v=23"></script>
+<script src="overblik.js?v=24"></script>
 </body>
 </html>

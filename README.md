@@ -131,7 +131,9 @@ kommer og går, når Midttrafik/Rejseplanen ændrer dem. Der dedupliceres på
 teksten, poster uden tekst udelades, HTML renses væk, og nyeste besked står
 først; siden bestemmer ikke selv indholdet. Flere beskeder skifter hvert 15. sek.
 med tæller ("1/2"), og banneret er lige så højt som den længste, så rækkerne ikke
-hopper. Klik på banneret folder det sammen til én smal linje med overskriften
+hopper. Når banneret er foldet ud, dukker to pile op ved hover: de skifter besked
+i hånden og holder den valgte besked i 2 min., før det automatiske skift
+fortsætter. Klik på banneret folder det sammen til én smal linje med overskriften
 (`beskedFoldet` i `localStorage`, pr. skærm, overlever genindlæsning). Tavlen får
 rækkerne tilbage, når banneret er foldet. Forældet realtid (> 3 min) skjuler
 beskederne. Udvalget kan afvige fra Rejseplanens egen skærm, da kun beskeder
