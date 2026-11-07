@@ -535,6 +535,8 @@ function medDepot(afgange, nm, rt, horisont = Infinity) {
       return {
         afgang: { ...x, afg_min: driftT(x.ank), til_navn: "Depot",
           retur_min: retur ? driftT(retur.fra_depot_tid || retur.afg) : null,
+          retur_afg: retur && retur.fra_depot_tid ? driftT(retur.afg) : null,
+          retur_til: retur ? stNavn(retur.til) : null,
           spor: infoRt ? (infoRt.spor_rt || infoRt.spor_plan) : null },
         ankomst: null, infoRt,
       };
@@ -547,7 +549,11 @@ function medDepot(afgange, nm, rt, horisont = Infinity) {
    slut for dagen (Kasper 07-11-2026). */
 function depotNote(afgang) {
   if (afgang.depot === "vask") return "Vask + sand";
-  if (afgang.retur_min != null) return "Ophold indtil " + fmtHM(afgang.retur_min);
+  /* "Ophold indtil 08:29 → 08:36 Universitetshospitalet": afgang CMY, derefter
+     løbets afgang fra Aarhus H og endestation (Kasper 07-11-2026). */
+  if (afgang.retur_min != null) return "Ophold indtil " + fmtHM(afgang.retur_min) +
+    (afgang.retur_afg != null ? " → " + fmtHM(afgang.retur_afg) : afgang.retur_til ? " →" : "") +
+    (afgang.retur_til ? " " + afgang.retur_til : "");
   return "Parkering";
 }
 

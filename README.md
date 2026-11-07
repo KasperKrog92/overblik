@@ -119,7 +119,9 @@ der starter fra CMC (ingen forrige tur) kan ikke vurderes.
 depot (CMY), vises det som en egen række "Depot" på ankomsttiden, flettet ind
 blandt afgangene — med noten "Vask + sand", "Ophold indtil H:MM" (løbet kører
 fra Aarhus H igen senere i driftsdøgnet; tiden = afgangen fra CMY før løbets
-næste AR-afgang, `fra_depot_tid` — ældre dagsfiler uden feltet viser AR-afgangen) eller
+næste AR-afgang, `fra_depot_tid`, efterfulgt af AR-afgangen og endestationen,
+fx "Ophold indtil 8:29 → 8:36 Universitetshospitalet" — ældre dagsfiler uden
+feltet viser "Ophold indtil 8:36 → Universitetshospitalet") eller
 "Parkering" (løbet er slut for dagen) (Kasper 07-11-2026; før fulgte noten
 OnlinePlans depot-type, hvor "parkering" netop var de korte ophold). Vagt = føreren der kører toget ind; forsinkelse/aflysning
 kommer fra ankomsttavlens post for turens tognummer (ingen vendetid). Kilden
