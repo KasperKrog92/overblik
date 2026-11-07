@@ -535,8 +535,6 @@ function medDepot(afgange, nm, rt, horisont = Infinity) {
       return {
         afgang: { ...x, afg_min: driftT(x.ank), til_navn: "Depot",
           retur_min: retur ? driftT(retur.fra_depot_tid || retur.afg) : null,
-          retur_afg: retur && retur.fra_depot_tid ? driftT(retur.afg) : null,
-          retur_til: retur ? stNavn(retur.til) : null,
           spor: infoRt ? (infoRt.spor_rt || infoRt.spor_plan) : null },
         ankomst: null, infoRt,
       };
@@ -549,11 +547,8 @@ function medDepot(afgange, nm, rt, horisont = Infinity) {
    slut for dagen (Kasper 07-11-2026). */
 function depotNote(afgang) {
   if (afgang.depot === "vask") return "Vask + sand";
-  /* "Ophold indtil 08:29 → 08:36 Universitetshospitalet": afgang CMY, derefter
-     løbets afgang fra Aarhus H og endestation (Kasper 07-11-2026). */
-  if (afgang.retur_min != null) return "Ophold indtil " + fmtHM(afgang.retur_min) +
-    (afgang.retur_afg != null ? " → " + fmtHM(afgang.retur_afg) : afgang.retur_til ? " →" : "") +
-    (afgang.retur_til ? " " + afgang.retur_til : "");
+  /* Selve afgangsrækken viser "Fra CMY 08:29" — her kun opholdets slut. */
+  if (afgang.retur_min != null) return "Ophold indtil " + fmtHM(afgang.retur_min);
   return "Parkering";
 }
 
@@ -713,11 +708,17 @@ function buildBoard() {
       ? " <span class='afkortet' title='" + esc("Kører kun til " + aft.til + ". Aflyst: " + aft.aflyste.join(", ")) +
         "'>(" + esc(aft.til) + ")</span>" : "");
 
+    /* Toget kommer fra depotet (Kasper 07-11-2026): "Fra CMY 08:29" under
+       endestationen på alle afgange med kendt udkørselstid (fra_depot_tid). */
+    const cmyNote = afgang.fra_depot_tid
+      ? "<small class='depotnote' title='" + esc("Toget kører fra CMY " + fmtHM(driftT(afgang.fra_depot_tid)) +
+          " til Aarhus H.") + "'>Fra CMY " + fmtHM(driftT(afgang.fra_depot_tid)) + "</small>"
+      : "";
     const titel = [tillyst ? "Afgangen var aflyst og er tillyst igen." : "", depTitel].filter(Boolean).join(" ");
     html += "<tr class='" + (heltAflyst ? "cancelled" : delvistAflyst ? "partial" : tillyst ? "reinstated" : "") + "'>" +
       "<td><span class='infoline " + linje.toLowerCase() + "'>" + linje + "</span></td>" +
       "<td class='departure num tnum'" + (titel ? " title='" + esc(titel) + "'" : "") + ">" + dep + "</td>" +
-      "<td class='destination'>" + tilHtml + delvistNote + "</td>" +
+      "<td class='destination'>" + tilHtml + delvistNote + cmyNote + "</td>" +
       (VIS_TOGNR ? "<td class='train tnum'>" + esc(afgang.tog || "—") + "</td>" : "") +
       "<td class='c-lobms'>" + (afgang.loeb
         ? "<span class='inforun'>" + esc(afgang.loeb) + "</span>" + (ms ? "<small>MS " + esc(ms) + "</small>" : "")
