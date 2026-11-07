@@ -122,7 +122,9 @@ har ingen note). Vagt = føreren der kører toget ind; forsinkelse/aflysning
 kommer fra ankomsttavlens post for turens tognummer (ingen vendetid). Kilden
 er OnlinePlans synlige "Aarhus depot…"/"v+s"-række efter turen (markeret af
 `parse_vagt_fuld`); fallback-planen har ingen depotdata. Depotrækker efter den
-sidste viste afgang udelades, når tavlen er fuld.
+sidste viste afgang udelades, når tavlen er fuld; er den ikke fuld, vises kun
+depotrækker inden for live-tavlens horisont (`TAVLE_DUR` = 90 min) — ellers
+fyldte dagens senere depotkørsler de tomme pladser (07-11-2026: 08:56 → 16:33).
 
 **Driftsbeskeder** (05-11-2026): Rejseplanens driftsbeskeder (HIM) vises i et
 banner nederst på tavlen, som på Rejseplanens egen infoskærm. De følger med i

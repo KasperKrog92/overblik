@@ -115,11 +115,12 @@ function hafasMin(s) {
 /* heleDoegn: hele driftsdøgnet fra kl. 04 (også kørte afgange) — bruges kun
    til at spore aflyst/tillyst, så en tillysning ≥ 1 time ude (D&G R5) også
    fanges, før afgangen når de næste 90 min. */
+const TAVLE_DUR = 90;   // live-tavlens horisont i minutter
 async function hentTavle(typ, heleDoegn = false) {
   const res = await mgate("StationBoard", heleDoegn
     ? { type: typ, stbLoc: { lid: LID_AR }, jnyFltrL: PROD_LETBANE, maxJny: 500, dur: 1439,
         date: driftsdatoISO().replace(/-/g, ""), time: "040000" }
-    : { type: typ, stbLoc: { lid: LID_AR }, jnyFltrL: PROD_LETBANE, maxJny: 60, dur: 90 });
+    : { type: typ, stbLoc: { lid: LID_AR }, jnyFltrL: PROD_LETBANE, maxJny: 60, dur: TAVLE_DUR });
   const prodL = (res.common || {}).prodL || [];
   const tavle = (res.jnyL || []).map((jny) => {
     const st = jny.stbStop || {};
@@ -501,7 +502,7 @@ function infoAfgange(rt) {
       afg: null, afg_min: infoRt.afg_plan,
       til_navn: retning, spor,
     }, infoRt);
-  }), nm, rt);
+  }), nm, rt, nm + TAVLE_DUR);
 
   /* Fallback uden realtid: planens egne afgange fra Aarhus H (forudsorteret). */
   return medDepot(idx().arAfg.filter((x) => driftT(x.afg) >= nm - 1)
@@ -517,8 +518,11 @@ function infoAfgange(rt) {
    efter den sidste viste afgang udelades, når listen allerede er fuld, så der
    ikke opstår huller i tidsforløbet. Realtid = ankomsttavlens post for turens
    eget tognummer (forsinkelse/aflyst). */
-function medDepot(afgange, nm, rt) {
-  const graense = afgange.length >= 12 ? afgange[afgange.length - 1].afgang.afg_min : Infinity;
+function medDepot(afgange, nm, rt, horisont = Infinity) {
+  /* Ikke fuld liste: live-tavlen dækker kun TAVLE_DUR min frem, så depotrækker
+     må ikke række længere — ellers fyldes de tomme pladser med dagens senere
+     depotkørsler (07-11-2026: 08:56 → 16:33 Depot). */
+  const graense = afgange.length >= 12 ? afgange[afgange.length - 1].afgang.afg_min : horisont;
   const depot = idx().depot
     .filter((x) => driftT(x.ank) >= nm - 1 && driftT(x.ank) <= graense)
     .map((x) => {
