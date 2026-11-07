@@ -117,8 +117,11 @@ der starter fra CMC (ingen forrige tur) kan ikke vurderes.
 
 **Depotkørsler** (12-10-2026): ender et løb på Aarhus H og kører toget derefter i
 depot (CMY), vises det som en egen række "Depot" på ankomsttiden, flettet ind
-blandt afgangene — med noten "Vask + sand" eller "Parkering" (ren hensættelse
-har ingen note). Vagt = føreren der kører toget ind; forsinkelse/aflysning
+blandt afgangene — med noten "Vask + sand", "Ophold indtil H:MM" (løbet kører
+fra Aarhus H igen senere i driftsdøgnet; tiden = afgangen fra CMY før løbets
+næste AR-afgang, `fra_depot_tid` — ældre dagsfiler uden feltet viser AR-afgangen) eller
+"Parkering" (løbet er slut for dagen) (Kasper 07-11-2026; før fulgte noten
+OnlinePlans depot-type, hvor "parkering" netop var de korte ophold). Vagt = føreren der kører toget ind; forsinkelse/aflysning
 kommer fra ankomsttavlens post for turens tognummer (ingen vendetid). Kilden
 er OnlinePlans synlige "Aarhus depot…"/"v+s"-række efter turen (markeret af
 `parse_vagt_fuld`); fallback-planen har ingen depotdata. Depotrækker efter den
@@ -201,7 +204,9 @@ uden versionering kan besøgende få ny HTML blandet med gammel JS/CSS (set
 begrænsning), så siden bruger dem ikke til vendetids-beregningen.
 
 `"depot": "vask" | "parkering" | "depot"` + `"depot_tid"` (ankomst CMY) på en tur
-= toget kører fra Aarhus H i depot efter turen.
+= toget kører fra Aarhus H i depot efter turen. `"fra_depot_tid"` (afgang CMY)
+på en tur = toget kommer fra depotet til Aarhus H før turen (OnlinePlans
+"Aarhus depot…"-række før turen); bruges som tiden i "Ophold indtil H:MM".
 
 `data/fallback.json`: samme turformat pr. fast dagtype + MS-tabeller.
 Genereres med `python scripts/overblik_publish.py fallback` ved planskift.

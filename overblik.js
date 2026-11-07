@@ -527,8 +527,14 @@ function medDepot(afgange, nm, rt, horisont = Infinity) {
     .filter((x) => driftT(x.ank) >= nm - 1 && driftT(x.ank) <= graense)
     .map((x) => {
       const infoRt = rt.tavle.find((r) => r.tognr && String(r.tognr) === String(x.tog)) || null;
+      /* Kører løbet fra Aarhus H igen senere i driftsdøgnet, er depotturen kun
+         et ophold (Kasper 07-11-2026: fx ind x:13, ud igen x:39). Tiden er
+         afgangen fra CMY (`fra_depot_tid` på returturen); ældre dagsfiler uden
+         feltet falder tilbage til afgangen fra Aarhus H. */
+      const retur = idx().arAfg.find((a) => String(a.loeb) === String(x.loeb) && driftT(a.afg) > driftT(x.ank));
       return {
         afgang: { ...x, afg_min: driftT(x.ank), til_navn: "Depot",
+          retur_min: retur ? driftT(retur.fra_depot_tid || retur.afg) : null,
           spor: infoRt ? (infoRt.spor_rt || infoRt.spor_plan) : null },
         ankomst: null, infoRt,
       };
@@ -536,7 +542,14 @@ function medDepot(afgange, nm, rt, horisont = Infinity) {
   return afgange.concat(depot).sort((a, b) => a.afgang.afg_min - b.afgang.afg_min).slice(0, 12);
 }
 
-const DEPOT_NOTE = { vask: "Vask + sand", parkering: "Parkering" };
+/* Note under "Depot": vask + sand vises altid; ellers "Ophold indtil H:MM",
+   når løbet kører fra Aarhus H igen senere, og "Parkering" kun når løbet er
+   slut for dagen (Kasper 07-11-2026). */
+function depotNote(afgang) {
+  if (afgang.depot === "vask") return "Vask + sand";
+  if (afgang.retur_min != null) return "Ophold indtil " + fmtHM(afgang.retur_min);
+  return "Parkering";
+}
 
 /* ---------- rendering ---------- */
 /* Førernummer/-numre under vagtnummeret (Kasper 27-10-2026) — fra dagsfilens
@@ -728,7 +741,7 @@ function depotRaekke(afgang, infoRt, togMatch, linje, ms) {
   const aflyst = !!(infoRt && infoRt.aflyst);
   const tillyst = !aflyst && !!infoRt && erTillyst("ARR", afgang.tog)
     && foersteTillyste(afgang.loeb, afgang.afg_min);
-  const note = DEPOT_NOTE[afgang.depot];
+  const note = depotNote(afgang);
   const titel = "Tog " + afgang.tog + " ankommer Aarhus H " + fmtHM(afgang.afg_min) +
     " og kører i depot" + (afgang.depot_tid ? " (CMY " + fmtHM(driftT(afgang.depot_tid)) + ")" : "") +
     (note ? " · " + note.toLowerCase() : "") +
