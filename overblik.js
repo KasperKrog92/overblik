@@ -946,27 +946,46 @@ function tickClock() {
    script kører, og skærmen står død. Uden net hentes dagens plan i den kørende
    side i stedet (dagsfil eller fallback), og reload forsøges igen om et minut.
 
+   REGEL (Kasper 10-11-2026): siden må ALDRIG kræve, at nogen rører den, for at
+   blive opdateret. Et nyt deploy samles derfor altid op ved døgnskiftet.
+
    ⛶-fuldskærm (browserens Fullscreen API) overlever ikke et reload, og siden
-   kan ikke selv gå i fuldskærm igen uden et klik — skærmen ville stå i et
-   almindeligt vindue hver morgen. Er siden i ⛶-fuldskærm, skiftes døgnet
-   derfor i den kørende side (ny dagsfil hentes, resten nulstiller sig selv pr.
-   driftsdato), og genindlæsningen venter, til fuldskærmen forlades — først dér
-   samles et nyt deploy op. F11/kiosk-tilstand er browserens egen fuldskærm:
-   den overlever reload og kan ikke ses herfra, så dér genindlæses som før. */
+   kan ikke selv gå i fuldskærm igen uden et klik. Den eneste undtagelse fra
+   genindlæsningen er derfor: siden står i ⛶-fuldskærm, OG sidens HTML er
+   bevist uændret siden indlæsningen (css/js skifter altid ?v= i HTML'en, så
+   uændret HTML = intet nyt deploy). Så er der intet at samle op, døgnet
+   skiftes i den kørende side (ny dagsfil hentes, resten nulstiller sig selv pr.
+   driftsdato), og fuldskærmen bevares. Er der deployet nyt, genindlæses der —
+   også i fuldskærm, som så forlades. Kan det ikke afgøres, genindlæses der.
+   F11/kiosk-tilstand er browserens egen fuldskærm: den overlever reload. */
+async function hentSide() {
+  const r = await medTimeout(location.href, { cache: "no-store" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return { tekst: await r.text(), aendret: Date.parse(r.headers.get("last-modified") || "") };
+}
+/* Sidens HTML, som den så ud ved indlæsningen — kun gemt, når svaret har samme
+   Last-Modified som det indlæste dokument. Ellers kan et deploy være landet
+   mellem indlæsningen og denne hentning, og så er sammenligningsgrundlaget
+   ukendt (null = genindlæs altid ved døgnskiftet). */
+let sideVedStart = null;
+hentSide().then((s) => {
+  if (s.aendret === new Date(document.lastModified).getTime()) sideVedStart = s.tekst;
+}).catch(() => {});
+
 let naesteGenindlaes = 0;
-let genindlaesVenter = false;      // døgnskifte taget uden reload (⛶-fuldskærm)
 async function nytDriftsdoegn() {
   if (Date.now() < naesteGenindlaes) return;
   naesteGenindlaes = Date.now() + 60 * 1000;
-  if (document.fullscreenElement) {
-    S.sidsteDrift = driftsdatoISO();
-    genindlaesVenter = true;
-    opdater(true);
-    return;
-  }
   try {
-    const r = await medTimeout(location.href, { method: "HEAD", cache: "no-store" });
-    if (r.ok) { location.reload(); return; }
+    const side = await hentSide();
+    const uaendret = sideVedStart != null && side.tekst === sideVedStart;
+    if (document.fullscreenElement && uaendret) {
+      S.sidsteDrift = driftsdatoISO();
+      opdater(true);
+      return;
+    }
+    location.reload();
+    return;
   } catch (e) { /* offline: prøv igen om et minut */ }
   if (S.planDato !== driftsdatoISO()) opdater(true);
 }
@@ -1062,14 +1081,6 @@ function initFullscreen() {
   });
   document.addEventListener("fullscreenchange", () => {
     btn.textContent = document.fullscreenElement ? "↙" : "⛶";
-    /* Udskudt genindlæsning efter et døgnskifte i ⛶-fuldskærm: nulstilles
-       sidsteDrift, tager uret den almindelige vej (HEAD-tjek, så reload) ved
-       næste tik — og prøver igen hvert minut, hvis siden ikke kan nås. */
-    if (!document.fullscreenElement && genindlaesVenter) {
-      genindlaesVenter = false;
-      naesteGenindlaes = 0;
-      S.sidsteDrift = null;
-    }
   });
 }
 

@@ -176,15 +176,22 @@ døgnskiftet, så kioskskærmen kører uden betjening — men kun når siden kan
 intet script kører. Uden net hentes dagens plan i den kørende side, og reload
 forsøges igen hvert minut.
 
-**Fuldskærm og døgnskiftet** (10-11-2026): ⛶-knappen bruger browserens
-Fullscreen API, og den fuldskærm overlever ikke et reload — siden kan heller
-ikke selv gå i fuldskærm igen uden et klik. Står siden i ⛶-fuldskærm kl. 04,
-genindlæses den derfor ikke: den nye dagsfil hentes i den kørende side, og
-genindlæsningen udskydes, til fuldskærmen forlades. Konsekvens: en skærm i
-⛶-fuldskærm får først et nyt deploy (ny `overblik.js`), når nogen forlader
-fuldskærmen eller genindlæser. **F11 eller browserens kiosk-tilstand anbefales
-til den faste skærm**: den fuldskærm overlever reload, så siden genindlæser
-som før hver morgen og altid kører nyeste version.
+**Siden må aldrig kræve betjening for at blive opdateret** (Kaspers regel
+10-11-2026): et nyt deploy samles altid op ved døgnskiftet kl. 04, uden at
+nogen rører skærmen.
+
+**Fuldskærm og døgnskiftet:** ⛶-knappen bruger browserens Fullscreen API, og
+den fuldskærm overlever ikke et reload — siden kan heller ikke selv gå i
+fuldskærm igen uden et klik. Derfor springes genindlæsningen over i præcis ét
+tilfælde: siden står i ⛶-fuldskærm, **og** sidens HTML er bevist uændret siden
+indlæsningen (css/js skifter altid `?v=` i HTML'en, så uændret HTML = intet nyt
+deploy). Så hentes den nye dagsfil i den kørende side, og fuldskærmen bevares.
+Er der deployet nyt, genindlæses der også i fuldskærm, som så forlades den
+morgen; kan det ikke afgøres, genindlæses der. Sammenligningsgrundlaget
+(`sideVedStart`) gemmes kun, når HTML'en hentet ved opstart har samme
+`Last-Modified` som det indlæste dokument. **F11 eller browserens
+kiosk-tilstand anbefales fortsat til den faste skærm**: den fuldskærm overlever
+reload, så skærmen bliver i fuldskærm også efter et deploy.
 
 **Lys/mørk følger klokken**: mørk tilstand fra kl. 20:00 og lys fra kl.
 05:40 — skiftet er øjeblikkeligt (den gradvise 10 min-overgang blev fjernet
