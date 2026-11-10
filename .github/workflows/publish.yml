@@ -13,12 +13,22 @@
 # Cron er UTC; TZ=Europe/Copenhagen sikrer at scriptets driftsdato (skifter
 # kl. 04 lokal) regnes rigtigt. 03:20 UTC = 04:20/05:20 dansk tid — altid
 # efter driftsdøgnskiftet. Middagskørslen samler evt. planrettelser op.
+#
+# GitHub starter planlagte kørsler FORSINKET — målt 10-11-2026: 03:20-kørslen
+# startede kl. 08:30–11:40 UTC og 11:00-kørslen kl. 15:35–21:20 UTC (5–10
+# timer for sent, voksende siden 19-10-2026). Tavlen kørte derfor til omkring
+# middag på filen fra aftenen før. De to aftenkørsler (19:00 og 23:00 UTC) er
+# tilføjet, så der med samme forsinkelse lander en frisk fil omkring
+# driftsdøgnets start; uden forsinkelse giver de blot et senere øjebliksbillede
+# af "i morgen". Hver kørsel henter både driftsdatoen og dagen efter.
 name: Publicér afgangsdata
 
 on:
   schedule:
     - cron: "20 3 * * *"
     - cron: "0 11 * * *"
+    - cron: "0 19 * * *"
+    - cron: "0 23 * * *"
   workflow_dispatch:
 
 permissions:

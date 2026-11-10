@@ -11,8 +11,9 @@ markeret `noindex`.
 Designet er OCC Overbliks infoskærm (samme logik), men med **Vagt**/**Afgiver**
 i stedet for fører-kolonnerne. Under vagtnummeret står førernummeret (ved
 oplæringspar begge, adskilt af "·"); i Afgiver står det før "ank HH:MM".
-Numrene stammer fra bemandingen på hentetidspunktet (~04:20 og ~12/13), så en
-omrokering senere på dagen ses først ved næste kørsel. Fallback-planen har ingen
+Numrene stammer fra bemandingen på hentetidspunktet (fire kørsler i døgnet, se
+Drift — hentetidspunktet står i urets tooltip), så en omrokering senere på
+dagen ses først ved næste kørsel. Fallback-planen har ingen
 førernumre. Der er ingen bynavne under vagtnumrene, og
 Tognr.-kolonnen er skjult bag flaget `VIS_TOGNR` i `overblik.js` (sæt `true` og
 bump `?v=` for at vise den igen). Typografien er sat op til læsning på afstand
@@ -147,6 +148,22 @@ genindlæsning eller en uændret besked, der kommer igen, ikke åbner det. Foræ
 beskederne. Udvalget kan afvige fra Rejseplanens egen skærm, da kun beskeder
 knyttet til afgange/ankomster på tavlen de næste 90 min. kommer med.
 
+**Spor** (rettet 10-11-2026): perronen læses fra tavlesvarets `dPltfS`/`aPltfS`
+(planlagt) og `dPltfR`/`aPltfR` (ændret) — et objekt `{type:"PL", txt:"1"}`,
+hvor spor 0 står som bogstavet "O". Koden læste før `dPlatf*`, som ikke findes,
+så kolonnen altid faldt tilbage på reglen Mårslet/Odder = 0, ellers 1, og
+depotrækker viste "—". Reglen er nu kun reserve; depotrækker bruger
+ankomstperronen og ellers planens position (`AR0` → 0).
+
+**Gennemgående tog har ingen vendetid** — heller ikke ved førerskift på Aarhus
+H (rettet 10-11-2026). Turen står da i planen som to dele med samme tognummer,
+og Rejseplanens afgang ligger 2 min efter planens ankomst; de 2 min blev før
+regnet som vendetid og trukket fra tavlens egen prognose (41 tognumre på en
+man–tors-dag). Afgiver-kolonnen viser fortsat førerskiftet.
+
+En skjult fane (minimeret eller i baggrunden) henter ikke realtid; den hentede
+før ca. én gang i minuttet. Når fanen vises igen, hentes friske data straks.
+
 Der er ingen synlig statuslinje/footer (fjernet på Kaspers ønske) — plan- og
 realtidsstatus (inkl. fallback-/særplan-advarsler) ligger som tooltip på uret.
 Tavlen viser op til 12 afgange, men beskærer selv antallet af rækker, så der
@@ -159,13 +176,23 @@ døgnskiftet, så kioskskærmen kører uden betjening — men kun når siden kan
 intet script kører. Uden net hentes dagens plan i den kørende side, og reload
 forsøges igen hvert minut.
 
+**Fuldskærm og døgnskiftet** (10-11-2026): ⛶-knappen bruger browserens
+Fullscreen API, og den fuldskærm overlever ikke et reload — siden kan heller
+ikke selv gå i fuldskærm igen uden et klik. Står siden i ⛶-fuldskærm kl. 04,
+genindlæses den derfor ikke: den nye dagsfil hentes i den kørende side, og
+genindlæsningen udskydes, til fuldskærmen forlades. Konsekvens: en skærm i
+⛶-fuldskærm får først et nyt deploy (ny `overblik.js`), når nogen forlader
+fuldskærmen eller genindlæser. **F11 eller browserens kiosk-tilstand anbefales
+til den faste skærm**: den fuldskærm overlever reload, så siden genindlæser
+som før hver morgen og altid kører nyeste version.
+
 **Lys/mørk følger klokken**: mørk tilstand fra kl. 20:00 og lys fra kl.
 05:40 — skiftet er øjeblikkeligt (den gradvise 10 min-overgang blev fjernet
 05-09-2026, fordi den ikke så godt ud på skærmen). `data-theme` på `:root`
 tjekkes hvert 5. sek. og styrer alle farve-tokens inkl. logoet (`--moerk`).
 Anti-blink-scriptet i `<head>` sætter samme klokke-tema før første maling. Øverst til højre sidder
 ⛶ (fuld skærm) med en sol/måne-toggle lige under — et klik gælder til næste
-planlagte skifte (og kiosken genindlæser alligevel kl. 04). `?tema=moerk` /
+planlagte skifte. `?tema=moerk` /
 `?tema=lys` fastlåser valget og slår skemaet fra (localStorage-nøglen
 `temaFast`); `?tema=auto` fjerner låsen. Begge knapper fader væk når musen er
 i ro og kommer igen ved bevægelse, så skærmen står ren.
@@ -178,13 +205,14 @@ i ro og kommer igen ved bevægelse, så skærmen står ren.
 | Hosting | GitHub Pages, branch `main`, rod |
 | Domæne | `overblik.kasper-krog.dk` (styret af `CNAME`-filen — slet/ret ikke) |
 | DNS | CNAME-record: navn `overblik` → `kasperkrog92.github.io` |
-| HTTPS | GitHub udsteder certifikat automatisk når DNS-recorden svarer; slå derefter "Enforce HTTPS" til (repo → Settings → Pages) |
-| Dagligt datafeed | **GitHub Actions i dette repo** (`.github/workflows/publish.yml`, siden 19-10-2026): kører i skyen kl. ~04:20 og ~12/13 dansk tid, henter koden fra det private vagtplan-repo med læse-nøglen `VAGTPLAN_DEPLOY_KEY`, logger ind i OnlinePlan med krypterede Actions-secrets, bygger dagsfilerne og pusher dem med `GITHUB_TOKEN`. Loggen er offentlig. Ingen lokal maskine involveret. |
+| HTTPS | Cloudflare-proxyen serverer HTTPS til besøgende. **`http://` omdirigeres ikke** (målt 10-11-2026: HTTP 200). GitHub har ikke udstedt eget certifikat og kan ikke, så længe recorden er proxied, så "Enforce HTTPS" i Pages kan ikke slås til; løsningen er "Always Use HTTPS" i Cloudflare (SSL/TLS → Edge Certificates). |
+| Dagligt datafeed | **GitHub Actions i dette repo** (`.github/workflows/publish.yml`, siden 19-10-2026): fire planlagte kørsler i døgnet (cron 03:20, 11:00, 19:00 og 23:00 UTC), som henter koden fra det private vagtplan-repo med læse-nøglen `VAGTPLAN_DEPLOY_KEY`, logger ind i OnlinePlan med krypterede Actions-secrets, bygger dagsfilerne og pusher dem med `GITHUB_TOKEN`. Loggen er offentlig. Ingen lokal maskine involveret. **GitHub starter kørslerne 5–10 timer forsinket** (målt 10-11-2026 — se `docs/overblik-actions.md` i hovedprojektet), så klokkeslættene er ikke til at regne med; hver kørsel henter både driftsdatoen og dagen efter, og det er "i morgen"-filen, tavlen starter på kl. 04. |
 
 **Ved ændring af css/js: bump `?v=` på begge links i `index.html`.**
-Cloudflare-proxyen edge-cacher `.js`/`.css` i op til 10 min (max-age=600), så
-uden versionering kan besøgende få ny HTML blandet med gammel JS/CSS (set
-27-08-2026). Selve HTML'en og JSON-dagsfilerne edge-caches ikke.
+Cloudflare-proxyen lader browseren cache `.js`/`.css` i 4 timer
+(`max-age=14400`, målt 10-11-2026), så uden versionering kan besøgende få ny
+HTML blandet med gammel JS/CSS (set 27-08-2026). Selve HTML'en og
+JSON-dagsfilerne caches højst 10 min.
 
 ## Dataformater
 

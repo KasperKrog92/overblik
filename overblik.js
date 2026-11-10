@@ -33,7 +33,7 @@ const STATION = {
 function stNavn(kode) {
   if (kode == null || kode === "") return "";
   const k = String(kode);
-  if (k.includes("|")) return k.split("|")[0];      // ukendt station: "Navn|pos"
+  if (k.includes("|")) return rpNavn(k.split("|")[0]);   // ukendt station: "Navn (Letbane)|pos"
   const base = k.replace(/\d+$/, "");
   return STATION[base] !== undefined ? STATION[base] : k;
 }
@@ -116,6 +116,21 @@ function hafasMin(s) {
    til at spore aflyst/tillyst, så en tillysning ≥ 1 time ude (D&G R5) også
    fanges, før afgangen når de næste 90 min. */
 const TAVLE_DUR = 90;   // live-tavlens horisont i minutter
+/* Perron fra tavlesvaret: feltet hedder dPltfS/aPltfS (planlagt) og
+   dPltfR/aPltfR (ændret) og er et objekt {type:"PL", txt:"1"} — målt
+   10-11-2026. Spor 0 på Aarhus H står som bogstavet "O". De ældre navne
+   dPlatf* (ren tekst) læses også, hvis Rejseplanen skulle skifte tilbage. */
+function perron(st, suffiks) {
+  for (const felt of ["dPltf", "aPltf", "dPlatf", "aPlatf"]) {
+    const p = st[felt + suffiks];
+    const txt = p && typeof p === "object" ? p.txt : p;
+    if (txt != null && String(txt).trim() !== "") {
+      const s = String(txt).trim();
+      return s.toUpperCase() === "O" ? "0" : s;
+    }
+  }
+  return null;
+}
 async function hentTavle(typ, heleDoegn = false) {
   const res = await mgate("StationBoard", heleDoegn
     ? { type: typ, stbLoc: { lid: LID_AR }, jnyFltrL: PROD_LETBANE, maxJny: 500, dur: 1439,
@@ -133,8 +148,8 @@ async function hentTavle(typ, heleDoegn = false) {
       retning: rpNavn(jny.dirTxt),
       afg_plan: plan, afg_rt: rt,
       forsinkelse_min: plan != null && rt != null ? rt - plan : null,
-      spor_plan: st.dPlatfS || st.aPlatfS || null,
-      spor_rt: st.dPlatfR || st.aPlatfR || null,
+      spor_plan: perron(st, "S"),
+      spor_rt: perron(st, "R"),
       aflyst: !!(st.dCncl || st.aCncl || jny.isCncl),
       tavle: "AR-" + typ,
     };
@@ -491,8 +506,9 @@ function infoAfgange(rt) {
   if (liveTavle.length) return medDepot(liveTavle.map((infoRt) => {
     const plan = planMatch(infoRt).slice()
       .sort((a, b) => Math.abs(driftT(a.afg) - infoRt.afg_plan) - Math.abs(driftT(b.afg) - infoRt.afg_plan))[0] || {};
-    /* Tavlesvaret har ikke altid perronfeltet. På Aarhus H går sydgående L2 mod
-       Mårslet/Odder fra spor 0; øvrige letbaneafgange fra spor 1. */
+    /* Rejseplanens perron er facit (en ændret perron vinder over den planlagte).
+       Mangler feltet: på Aarhus H går sydgående L2 mod Mårslet/Odder fra spor 0;
+       øvrige letbaneafgange fra spor 1. */
     const retning = infoRt.retning || stNavn(plan.til);
     const spor = infoRt.spor_rt || infoRt.spor_plan ||
       (["Mårslet", "Odder"].includes(retning) ? "0" : "1");
@@ -535,7 +551,9 @@ function medDepot(afgange, nm, rt, horisont = Infinity) {
       return {
         afgang: { ...x, afg_min: driftT(x.ank), til_navn: "Depot",
           retur_min: retur ? driftT(retur.fra_depot_tid || retur.afg) : null,
-          spor: infoRt ? (infoRt.spor_rt || infoRt.spor_plan) : null },
+          /* Rejseplanens ankomstperron; ellers planens position (AR0 → spor 0). */
+          spor: (infoRt && (infoRt.spor_rt || infoRt.spor_plan))
+            || (String(x.til).match(/^AR(\d+)$/) || [])[1] || null },
         ankomst: null, infoRt,
       };
     });
@@ -645,9 +663,13 @@ function buildBoard() {
     const delay = Number.isFinite(delayValue) ? delayValue : 0;
     /* Vendetid på Aarhus H: tiden fra det indgående togs planlagte ankomst til
        afgangen. En forsinkelse på det indgående tog æder først af vendetiden —
-       kun overskuddet er reel afgangsforsinkelse. Gennemgående tog (ingen
-       AR-ankomst på samme løb) beholder hele forsinkelsen. */
-    const vendetid = ankomst && ankomst.ank != null && !afgang.gentaget
+       kun overskuddet er reel afgangsforsinkelse. Gennemgående tog beholder
+       hele forsinkelsen — også når føreren skiftes på Aarhus H: så står turen
+       i planen som to dele med SAMME tognummer, og Rejseplanens afgang ligger
+       2 min efter planens ankomst. Det er holdetid, ikke vendetid (10-11-2026:
+       ellers blev tavlens egen prognose for fx tog 12035 nedskrevet 2 min). */
+    const gennemgaaende = !!(ankomst && String(ankomst.tog) === String(afgang.tog));
+    const vendetid = ankomst && ankomst.ank != null && !afgang.gentaget && !gennemgaaende
       ? Math.max(0, afgang.afg_min - driftT(ankomst.ank)) : null;
     const reelDelay = delay > 0 && vendetid != null ? Math.max(0, delay - vendetid) : delay;
     const bufret = delay > 0 && reelDelay < delay;
@@ -922,11 +944,26 @@ function tickClock() {
    samles op — kiosk-skærmen kører i ugevis uden betjening. Genindlæs KUN når
    siden kan nås: et reload uden net giver browserens fejlside, hvor intet
    script kører, og skærmen står død. Uden net hentes dagens plan i den kørende
-   side i stedet (dagsfil eller fallback), og reload forsøges igen om et minut. */
+   side i stedet (dagsfil eller fallback), og reload forsøges igen om et minut.
+
+   ⛶-fuldskærm (browserens Fullscreen API) overlever ikke et reload, og siden
+   kan ikke selv gå i fuldskærm igen uden et klik — skærmen ville stå i et
+   almindeligt vindue hver morgen. Er siden i ⛶-fuldskærm, skiftes døgnet
+   derfor i den kørende side (ny dagsfil hentes, resten nulstiller sig selv pr.
+   driftsdato), og genindlæsningen venter, til fuldskærmen forlades — først dér
+   samles et nyt deploy op. F11/kiosk-tilstand er browserens egen fuldskærm:
+   den overlever reload og kan ikke ses herfra, så dér genindlæses som før. */
 let naesteGenindlaes = 0;
+let genindlaesVenter = false;      // døgnskifte taget uden reload (⛶-fuldskærm)
 async function nytDriftsdoegn() {
   if (Date.now() < naesteGenindlaes) return;
   naesteGenindlaes = Date.now() + 60 * 1000;
+  if (document.fullscreenElement) {
+    S.sidsteDrift = driftsdatoISO();
+    genindlaesVenter = true;
+    opdater(true);
+    return;
+  }
   try {
     const r = await medTimeout(location.href, { method: "HEAD", cache: "no-store" });
     if (r.ok) { location.reload(); return; }
@@ -1025,6 +1062,14 @@ function initFullscreen() {
   });
   document.addEventListener("fullscreenchange", () => {
     btn.textContent = document.fullscreenElement ? "↙" : "⛶";
+    /* Udskudt genindlæsning efter et døgnskifte i ⛶-fuldskærm: nulstilles
+       sidsteDrift, tager uret den almindelige vej (HEAD-tjek, så reload) ved
+       næste tik — og prøver igen hvert minut, hvis siden ikke kan nås. */
+    if (!document.fullscreenElement && genindlaesVenter) {
+      genindlaesVenter = false;
+      naesteGenindlaes = 0;
+      S.sidsteDrift = null;
+    }
   });
 }
 
@@ -1041,6 +1086,9 @@ setInterval(tickClock, 1000);
 setInterval(tickTema, 5 * 1000);                       // planlagt lys/mørk-skifte (øjeblikkeligt)
 let resizeTimer = null;   // zoom udløser resize: genbyg så rækkeantallet passer
 window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(buildBoard, 200); });
-setInterval(() => opdater(false), 40 * 1000);          // realtid
+/* Realtid. En skjult fane (minimeret, i baggrunden) henter ikke: ellers bliver
+   den ved med at kalde Rejseplanen ca. én gang i minuttet. Når fanen vises
+   igen, henter visibilitychange-lytteren nedenfor straks friske data. */
+setInterval(() => { if (!document.hidden) opdater(false); }, 40 * 1000);
 setInterval(() => hentPlan().then(buildBoard), 15 * 60 * 1000);   // ny dagsfil publiceret?
 document.addEventListener("visibilitychange", () => { if (!document.hidden) opdater(true); });
