@@ -22,6 +22,15 @@ planlagte afgangstid** som det store tal; en forsinkelse står som et rødt
 "+N min"-mærke til venstre for tiden (samme mønster som AFLYST-mærket), og den
 forventede faktiske afgang ligger i cellens tooltip.
 
+**Designjusteringer (10-11-2026):** linjemærkerne har hver sin farvefamilie —
+L1 okkergul med mørk tekst, L2 blå (`--l1-bg`/`--l2-bg` i `overblik.css`), så de
+kan skelnes på afstand. AFLYST-mærket har samme størrelse som "+N min".
+MS-nummeret står til højre for løb-pillen (ikke under), så rækkerne er lavere og
+alle 12 afgange kan være der ved 1920×1080. Noten under en aflyst destination
+(fx "Vask + sand") overstreges ikke. Afgiver-cellen er tom, når der ikke er
+førerskift; stregen "—" betyder nu kun, at tognummeret ikke findes i planen.
+Spor står i fuld tekstfarve, og dæmpet tekst er gjort mørkere i lys tilstand.
+
 ## Sådan virker den
 
 To datakilder, begge uden backend:

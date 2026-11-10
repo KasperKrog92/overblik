@@ -7,12 +7,15 @@
 :root {
   color-scheme: light dark;
   --info-bg:#f5f4ef; --info-row:#fbfaf6; --info-alt:#e8e6df; --info-ink:#24292f;
-  --info-muted:#74716c; --info-head:#dedbd3; --info-headink:#4f4d49;
+  --info-muted:#625f5a; --info-head:#dedbd3; --info-headink:#4f4d49;
   --info-border:#d7d4cc; --info-grid:rgba(80,78,73,.11); --cancel:#c92929;
   --tillyst:#068a1c;  /* Midttrafiks "kører"-grøn (de midlertidige køreplaner) */
-  --warn:#b45f06;     /* fører forsinket */
+  --warn:#a35504;     /* fører forsinket */
   --accent:#3f5c99;   /* navy fra logoet — samme som OCC Overbliks --accent */
   --run-bg:#29333d;   /* løb-pillen */
+  /* Linjemærker: L1 varm (okker, mørk tekst), L2 blå (hvid tekst) — samme
+     familier som løbfarverne i OCC Overblik, så de kan skelnes på afstand. */
+  --l1-bg:#d9a02b; --l1-ink:#1f2328; --l2-bg:#3f5c99; --l2-ink:#fff;
   --moerk:0;          /* 0=lys, 1=mørk (logo-skift via .infomark::before) */
 }
 :root[data-theme="dark"] {
@@ -21,7 +24,8 @@
   --info-border:#3a3d43; --info-grid:rgba(255,255,255,.09); --cancel:#ff5f5f;
   --tillyst:#3fcf5a; --warn:#f0a04b;
   --accent:#5578c0;
-  --run-bg:#46505b;
+  --run-bg:#5d6976;
+  --l1-bg:#e0aa3a; --l2-bg:#5578c0;
   --moerk:1;
 }
 
@@ -48,7 +52,9 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
   padding-right: 31px; text-align: center; }
 .infoclock { font-size: clamp(36px, 2.6vw, 52px); font-weight: 800; letter-spacing: .055em; line-height: 1; }
 .infodate { margin-top: 4px; color: var(--info-muted); font-size: clamp(14px, .95vw, 18px);
-  font-weight: 600; text-transform: capitalize; }
+  font-weight: 600; }
+/* Kun første bogstav stort ("Tirsdag 10. november") — capitalize ramte også måneden. */
+.infodate::first-letter { text-transform: uppercase; }
 /* Knapperne (fuldskærm + sol/måne-toggle nedenunder) fader væk når musen har
    været i ro ~1,6 s og kommer igen ved bevægelse — samme mekanik som den
    interne infoskærms fuldskærmsknap i fuldskærm (fullscreen-ui-visible). */
@@ -79,7 +85,9 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .infotable th.c-afgiver { width: 16%; }
 .infotable th.c-spor { width: 7%; }
 .infotable th.num, .infotable td.num { text-align: right; }
-.infotable .c-lobms { text-align: center; }
+/* Løb-pille og MS-nummer står på én linje, venstrestillet så pillerne flugter.
+   Stablet bestemte cellen rækkehøjden og kostede 1–2 afgange på tavlen. */
+.infotable td.c-lobms { white-space: nowrap; }
 .infotable tbody tr { background: var(--info-row); }
 .infotable tbody tr:nth-child(even) { background: var(--info-alt); }
 .infotable tbody tr.cancelled { color: var(--info-muted); }
@@ -87,8 +95,8 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 
 .infoline { display: inline-grid; place-items: center; min-width: 54px; height: 44px; padding: 0 8px;
   color: #fff; font-size: clamp(19px, 1.25vw, 26px); font-weight: 820; }
-.infoline.l1 { background: #27576b; }
-.infoline.l2 { background: #3f5c99; }
+.infoline.l1 { background: var(--l1-bg); color: var(--l1-ink); }
+.infoline.l2 { background: var(--l2-bg); color: var(--l2-ink); }
 .destination { font-size: clamp(22px, 1.5vw, 33px); font-weight: 750; line-height: 1.12; }
 .destination small, .vagt small, .handoff small, .inforun + small,
 .infotable td.c-lobms small { display: block; margin-top: 3px; color: var(--info-muted);
@@ -96,18 +104,21 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .destination .canceltext { color: var(--cancel); font-size: clamp(13px, .85vw, 17px);
   font-weight: 750; text-transform: uppercase; }
 .train { font-size: clamp(17px, 1vw, 22px); font-weight: 750; }
-.inforun { display: inline-grid; place-items: center; min-width: 56px; padding: 5px 14px; border-radius: 999px;
+.inforun { display: inline-grid; place-items: center; min-width: 2.3em; vertical-align: middle; padding: 5px 14px; border-radius: 999px;
   background: var(--run-bg); color: #fff; font-size: clamp(20px, 1.45vw, 30px); font-weight: 800; }
 /* MS-nummeret under løb-pillen: skal kunne læses på storskærms-afstand. */
-.infotable td.c-lobms small { font-size: clamp(16px, 1.1vw, 22px); font-weight: 620; }
+.infotable td.c-lobms small { display: inline; margin: 0 0 0 .5em; vertical-align: middle;
+  font-size: clamp(16px, 1.1vw, 22px); font-weight: 620; font-variant-numeric: tabular-nums; }
 /* Førernummeret under vagtnummeret: samme størrelse som MS-nummeret (Kasper 27-10-2026). */
 .vagt small, .handoff small { font-size: clamp(16px, 1.1vw, 22px); font-weight: 620;
   font-variant-numeric: tabular-nums; }
 .vagt, .handoff { line-height: 1.15; }
 .vagt strong, .handoff strong { display: block; font-size: clamp(20px, 1.5vw, 31px);
   font-weight: 780; font-variant-numeric: tabular-nums; }
+/* Intet førerskift = tom celle, så rækkerne MED skifte er lette at finde. */
+.handoff .same { visibility: hidden; }
 .handoff .same, .mangler { color: var(--info-muted); font-size: clamp(15px, .95vw, 19px); font-weight: 650; }
-.infotable .track { color: var(--info-muted); font-size: clamp(24px, 1.75vw, 36px); }
+.infotable .track { font-size: clamp(24px, 1.75vw, 36px); font-weight: 650; }
 .departure { line-height: 1; }
 .departure strong { display: block; font-size: clamp(26px, 1.85vw, 40px); font-weight: 820; letter-spacing: .02em; }
 .departure .planned { display: block; margin-bottom: 3px; color: var(--info-muted);
@@ -116,6 +127,9 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
   gap: 10px; white-space: nowrap; }
 .departure .cancelled-departure strong, .departure .cancelled-departure .planned { display: inline;
   margin: 0; font-size: clamp(26px, 1.85vw, 40px); font-weight: 820; }
+/* AFLYST-mærket i samme størrelse som "+N min", så aflyste rækker ikke
+   overdøver de afgange der kører; den overstregede tid bærer resten. */
+.departure .cancelled-departure strong { font-size: clamp(20px, 1.4vw, 28px); }
 /* Forsinkelse: den planlagte tid bliver stående som det store tal, og "+N min"
    står som rødt mærke til venstre — samme mønster som AFLYST-mærket. */
 .departure .delayed-departure { display: flex; align-items: baseline; justify-content: flex-end;
@@ -140,6 +154,10 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .vagt small.foererwarn { color: var(--warn); font-weight: 780; }
 .cancelled .departure strong, .partial .destination .canceltext { color: var(--cancel); }
 .cancelled .destination { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+/* Den lille note under en aflyst destination overstreges ikke (ulæselig i den
+   størrelse): inline-block bryder nedarvningen af stregen. */
+.cancelled .destination small { display: inline-block; width: 100%; }
+.cancelled .destination small.depotnote { color: var(--info-muted); }
 /* Depotkørsel: toget ender på Aarhus H og kører i depot (CMY) — dæmpet
    destination, så rækken skiller sig ud fra passagerafgangene. */
 .depot .destination { color: var(--info-muted); }
