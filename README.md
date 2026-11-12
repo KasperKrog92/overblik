@@ -87,8 +87,10 @@ To datakilder, begge uden backend:
 kørende på Rejseplanens tavle, får et grønt "TILLYST"-mærke til venstre for
 tiden (Midttrafiks kører-grøn `#068A1C`; samme mønster som AFLYST). Rejseplanen
 markerer ikke tillysninger, så siden husker pr. driftsdøgn i `localStorage`
-(`overblik.aflyst.<dato>`), hvilke tognumre den har set aflyst — begge
-tilstande skal ses i 2 opdateringer, før de tæller. Kun **tognummer-skift**
+(`overblik.aflyst.<dato>`), hvilke tognumre den har set aflyst — aflysningen
+skal ses i 2 opdateringer, før den tæller, mens "kører igen" tæller fra første
+opdatering (12-11-2026; før kom mærket først en opdatering, ~40 s, efter at
+rækken var skiftet til kørende). Kun **tognummer-skift**
 tæller, ikke at et løb kører igen efter en aflyst periode: efter D&G aflyses i
 1-timesblokke, og afgangene efter en blok står som kørende, selvom næste blok
 blot ikke er besluttet endnu. Da tillysning kræver ≥ 1 times varsel (D&G R5,

@@ -315,9 +315,14 @@ async function detalje(jid) {
    Kun TOGNUMMER-skift tæller — ikke at et løb "kører igen" efter en aflyst
    periode: efter D&G aflyses i 1-timesblokke, og afgangene efter en blok står
    som kørende, selv om næste blok blot ikke er besluttet endnu.
-   Begge tilstande skal ses i TILLYST_BEKRAEFT opdateringer, så et enkelt
-   fejlsvar fra Rejseplanen ikke giver udslag. Nøgle: "DEP|tognr" / "ARR|tognr". */
+   Aflysningen skal ses i TILLYST_BEKRAEFT opdateringer, så et enkelt
+   fejlsvar fra Rejseplanen ikke giver udslag. At toget kører igen, kræver kun
+   én opdatering (12-11-2026): rækken vises alligevel som kørende fra første
+   svar, så mærket skal med med det samme og ikke en opdatering (~40 s) senere.
+   Står toget aflyst igen i næste svar, nulstilles tælleren, og mærket
+   forsvinder. Nøgle: "DEP|tognr" / "ARR|tognr". */
 const TILLYST_BEKRAEFT = 2;
+const TILLYST_KOERER = 1;
 const SPOR_PREFIKS = "overblik.aflyst.";
 const DAGSTAVLE_HVER = 3;            // hele døgnets tavler hver 3. opdatering (~2 min)
 let spor = { dato: null, t: {} };    // t: nøgle -> {a: aflyst-observationer, k: kørende siden sidste aflyst}
@@ -357,7 +362,7 @@ function noterAflysninger(lister) {
 
 const erTillyst = (typ, tognr) => {
   const e = tognr && sporNu()[typ + "|" + tognr];
-  return !!e && e.a >= TILLYST_BEKRAEFT && e.k >= TILLYST_BEKRAEFT;
+  return !!e && e.a >= TILLYST_BEKRAEFT && e.k >= TILLYST_KOERER;
 };
 
 /* Kun den FØRSTE tillyste afgang i løbet får mærket (Kasper 30-10-2026):
