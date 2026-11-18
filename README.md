@@ -18,9 +18,12 @@ førernumre. Der er ingen bynavne under vagtnumrene, og
 Tognr.-kolonnen er skjult bag flaget `VIS_TOGNR` i `overblik.js` (sæt `true` og
 bump `?v=` for at vise den igen). Typografien er sat op til læsning på afstand
 (storskærm) og skalerer med skærmbredden. Afgang-kolonnen viser **altid den
-planlagte afgangstid** som det store tal; en forsinkelse står som et rødt
+planlagte afgangstid** som det store tal; en forsinkelse står som et
 "+N min"-mærke til venstre for tiden (samme mønster som AFLYST-mærket), og den
-forventede faktiske afgang ligger i cellens tooltip.
+forventede faktiske afgang ligger i cellens tooltip. Mærket har tre farvetrin
+(18-11-2026), så små forsinkelser ikke fylder lige så meget som aflysninger:
+1–3 min dæmpet grå, 4–9 min orange (`--delay-mid`), 10+ min rød som AFLYST
+(`delayKlasse` i `overblik.js`; grænserne er `FORSINKET_MIN` og `FORSINKET_STOR`).
 
 **Designjusteringer (10-11-2026):** linjemærkerne har hver sin farvefamilie —
 L1 okkergul med mørk tekst, L2 blå (`--l1-bg`/`--l2-bg` i `overblik.css`), så de

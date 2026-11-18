@@ -598,6 +598,11 @@ function vagtCelle(vagt, ekstra, advarsel) {
    selv om toget selv er til tiden. Forsinkelser under FORSINKET_MIN ses bort
    fra (jitter). Kører føreren selv toget ind, dækker afgangsforsinkelsen det. */
 const FORSINKET_MIN = 4;
+/* Forsinkelses-mærkets farvetrin (Kasper 18-11-2026): små forsinkelser må ikke
+   fylde lige så meget som aflysninger. Under FORSINKET_MIN = dæmpet/neutral,
+   4-9 min = orange, 10+ min = rød (som AFLYST). */
+const FORSINKET_STOR = 10;
+const delayKlasse = (n) => n >= FORSINKET_STOR ? "d3" : n >= FORSINKET_MIN ? "d2" : "d1";
 const OVERTAGELSE_MARGIN = 2;
 function foererForsinket(afgang, ankomst, rt, rtTog, nm) {
   if (!afgang.vagt || afgang.gentaget) return null;
@@ -711,9 +716,9 @@ function buildBoard() {
       ? "<span class='cancelled-departure'><strong>AFLYST</strong><time class='planned'>" + fmtHM(afgang.afg_min) + "</time></span>"
       : tillyst
         ? "<span class='reinstated-departure'><small>TILLYST</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>" +
-          (reelDelay > 0 ? "<small>+" + reelDelay + " min</small>" : "")
+          (reelDelay > 0 ? "<small class='" + delayKlasse(reelDelay) + "'>+" + reelDelay + " min</small>" : "")
       : reelDelay > 0
-        ? "<span class='delayed-departure'><small>+" + reelDelay + " min</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>"
+        ? "<span class='delayed-departure'><small class='" + delayKlasse(reelDelay) + "'>+" + reelDelay + " min</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>"
         : bufret
           ? "<strong>" + fmtHM(afgang.afg_min) + "</strong><small class='buffered'>+" + delay + " i vendetid</small>"
           : "<strong>" + fmtHM(afgang.afg_min) + "</strong>";
@@ -785,9 +790,9 @@ function depotRaekke(afgang, infoRt, togMatch, linje, ms) {
     ? "<span class='cancelled-departure'><strong>AFLYST</strong><time class='planned'>" + fmtHM(afgang.afg_min) + "</time></span>"
     : tillyst
       ? "<span class='reinstated-departure'><small>TILLYST</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>" +
-        (delay > 0 ? "<small>+" + delay + " min</small>" : "")
+        (delay > 0 ? "<small class='" + delayKlasse(delay) + "'>+" + delay + " min</small>" : "")
     : delay > 0
-      ? "<span class='delayed-departure'><small>+" + delay + " min</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>"
+      ? "<span class='delayed-departure'><small class='" + delayKlasse(delay) + "'>+" + delay + " min</small><strong>" + fmtHM(afgang.afg_min) + "</strong></span>"
       : "<strong>" + fmtHM(afgang.afg_min) + "</strong>";
   return "<tr class='depot" + (aflyst ? " cancelled" : tillyst ? " reinstated" : "") + "' title='" + esc(titel) + "'>" +
     "<td><span class='infoline " + linje.toLowerCase() + "'>" + linje + "</span></td>" +

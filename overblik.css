@@ -11,6 +11,7 @@
   --info-border:#d7d4cc; --info-grid:rgba(80,78,73,.11); --cancel:#c92929;
   --tillyst:#068a1c;  /* Midttrafiks "kører"-grøn (de midlertidige køreplaner) */
   --warn:#a35504;     /* fører forsinket */
+  --delay-mid:#c25e00; /* forsinkelse 4-9 min */
   --accent:#3f5c99;   /* navy fra logoet — samme som OCC Overbliks --accent */
   --run-bg:#29333d;   /* løb-pillen */
   /* Linjemærker: L1 varm (okker, mørk tekst), L2 blå (hvid tekst) — samme
@@ -22,7 +23,7 @@
   --info-bg:#17191c; --info-row:#202328; --info-alt:#292c31; --info-ink:#f2f1ed;
   --info-muted:#aaa7a1; --info-head:#34373c; --info-headink:#c7c5c0;
   --info-border:#3a3d43; --info-grid:rgba(255,255,255,.09); --cancel:#ff5f5f;
-  --tillyst:#3fcf5a; --warn:#f0a04b;
+  --tillyst:#3fcf5a; --warn:#f0a04b; --delay-mid:#ff9a3d;
   --accent:#5578c0;
   --run-bg:#5d6976;
   --l1-bg:#e0aa3a; --l2-bg:#5578c0;
@@ -131,7 +132,7 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
    overdøver de afgange der kører; den overstregede tid bærer resten. */
 .departure .cancelled-departure strong { font-size: clamp(20px, 1.4vw, 28px); }
 /* Forsinkelse: den planlagte tid bliver stående som det store tal, og "+N min"
-   står som rødt mærke til venstre — samme mønster som AFLYST-mærket. */
+   står som mærke til venstre (farvetrin d1/d2/d3 nedenfor) — samme mønster som AFLYST-mærket. */
 .departure .delayed-departure { display: flex; align-items: baseline; justify-content: flex-end;
   gap: 10px; white-space: nowrap; }
 .departure .delayed-departure strong { display: inline; margin: 0; }
@@ -140,6 +141,10 @@ body { margin: 0; background: var(--info-bg); color: var(--info-ink);
 .departure small { display: block; margin-top: 4px; color: var(--cancel);
   font-size: clamp(12px, .82vw, 16px); font-weight: 800; }
 .departure small.buffered { color: var(--info-muted); font-weight: 600; }
+/* Farvetrin efter forsinkelse: 1-3 min dæmpet og lettere, 4-9 min orange,
+   10+ min rød (arver --cancel fra reglen ovenfor). */
+.departure small.d1 { color: var(--info-muted); font-weight: 650; }
+.departure small.d2 { color: var(--delay-mid); }
 /* Tillyst: grønt "TILLYST"-mærke til venstre for tiden — spejl af AFLYST/+N min. */
 .departure .reinstated-departure { display: flex; align-items: baseline; justify-content: flex-end;
   gap: 10px; white-space: nowrap; }
