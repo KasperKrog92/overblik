@@ -1,0 +1,75 @@
+/* Juletema til afgangsoverblikket (se jul.js). Alt ligger under html.jul, så
+   siden er uændret, når temaet er slået fra eller sæsonen er slut.
+   Pynten holder sig til sidehovedet: afgangstavlen og dens farver (rød =
+   aflyst, grøn = tillyst, orange = forsinket) røres ikke. */
+
+:root { --jul-roed:#c62828; --jul-graa:#7d838c; --jul-sne:#fff; --jul-snekant:rgba(95,110,140,.55);
+  --jul-w: clamp(38px, 2.7vw, 52px); }
+:root[data-theme="dark"] { --jul-graa:#9aa0a9; --jul-sne:#eef2f7; --jul-snekant:rgba(0,0,0,0); }
+
+/* Knappen: samme skjulte hjørneknap som fuldskærm og lys/mørk, til venstre for dem. */
+.infojul { right: 49px; }
+.infojul[hidden] { display: none; }
+.infojul svg { width: 19px; height: 19px; display: block; }
+.infojul.fra svg { opacity: .45; }
+
+/* ---- statisk pynt ---- */
+/* Lyskæde langs toppen af sidehovedet. */
+.jul .infohead::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 18px;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 18' width='192' height='18'%3E%3Cpath d='M0 3 Q24 10 48 3 T96 3 T144 3 T192 3' fill='none' stroke='%23767b84' stroke-width='1'/%3E%3Cg fill='%235b6068'%3E%3Crect x='22.5' y='6' width='3' height='2.6'/%3E%3Crect x='70.5' y='6' width='3' height='2.6'/%3E%3Crect x='118.5' y='6' width='3' height='2.6'/%3E%3Crect x='166.5' y='6' width='3' height='2.6'/%3E%3C/g%3E%3Cellipse cx='24' cy='12.2' rx='3' ry='4.2' fill='%23d8343a'/%3E%3Cellipse cx='72' cy='12.2' rx='3' ry='4.2' fill='%23e8b93a'/%3E%3Cellipse cx='120' cy='12.2' rx='3' ry='4.2' fill='%232f9a55'/%3E%3Cellipse cx='168' cy='12.2' rx='3' ry='4.2' fill='%234a7fd0'/%3E%3C/svg%3E") left top/192px 18px repeat-x; }
+/* Sne på kanten ned mod tavlen. Ligger foran nissen, så han kan dukke op bag den. */
+.jul .infohead::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 10px;
+  z-index: 2; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 10' width='160' height='10'%3E%3Cpath d='M0 10 V6 Q10 1 22 5 Q32 8 44 4 Q58 0 70 5 Q80 8 92 5 Q104 1 116 5 Q128 9 140 5 Q150 2 160 6 V10 Z' fill='%23fff'/%3E%3Cpath d='M0 6 Q10 1 22 5 Q32 8 44 4 Q58 0 70 5 Q80 8 92 5 Q104 1 116 5 Q128 9 140 5 Q150 2 160 6' fill='none' stroke='%235f6e8c' stroke-opacity='.4' stroke-width='.8'/%3E%3C/svg%3E") left bottom/160px 10px repeat-x; }
+:root[data-theme="dark"].jul .infohead::after { opacity: .9; }
+/* Nissehue på uret. */
+.jul .infoclock { position: relative; }
+.jul .infoclock::before { content: ""; position: absolute; left: -.25em; top: -.24em; width: .6em; height: .52em;
+  transform: rotate(-22deg); transform-origin: 50% 100%; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 34'%3E%3Cpath d='M6 26 Q10 6 31 4 Q26 13 33 26 Z' fill='%23c62828'/%3E%3Crect x='3' y='23' width='33' height='8.5' rx='4.2' fill='%23fff' stroke='%23c3c8cf' stroke-width='.8'/%3E%3Ccircle cx='32' cy='5' r='4.2' fill='%23fff' stroke='%23c3c8cf' stroke-width='.8'/%3E%3C/svg%3E") center/contain no-repeat; }
+.jul .infoclock.jul-hue-vaek::before { visibility: hidden; }
+.jul .infoclock.jul-hue-retur::before { animation: jul-hue-retur .9s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes jul-hue-retur {
+  from { transform: translateY(-1.6em) rotate(30deg); opacity: 0; }
+  30% { opacity: 1; }
+  to { transform: rotate(-22deg); }
+}
+
+/* ---- scenen: nisse og snefald, kun i sidehovedet ---- */
+.julscene { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.jul-nisse { position: absolute; left: 0; bottom: 2px; width: var(--jul-w); will-change: transform; }
+.jul-fig { display: block; width: 100%; height: auto; overflow: visible; }
+.jul-bytte { display: none; }
+.har-hue .jul-bytte { display: inline; }
+
+.hopper .jul-fig { animation: jul-hop .44s ease-in-out infinite; }
+.hopper .jul-ben-v { animation: jul-ben .44s ease-in-out infinite; }
+.hopper .jul-ben-h { animation: jul-ben .44s ease-in-out infinite reverse; }
+.jul-ben-v { transform-origin: 16.5px 42px; }
+.jul-ben-h { transform-origin: 23.5px 42px; }
+@keyframes jul-hop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20%); } }
+@keyframes jul-ben { 0%, 100% { transform: rotate(24deg); } 50% { transform: rotate(-24deg); } }
+
+.jul-arm-h { transform-origin: 28px 35px; }
+.vinker .jul-arm-h { animation: jul-vink .5s ease-in-out infinite; }
+@keyframes jul-vink { 0%, 100% { transform: rotate(-105deg); } 50% { transform: rotate(-150deg); } }
+
+.kigger .jul-oejne { animation: jul-kig 2.4s ease-in-out both; }
+@keyframes jul-kig {
+  0%, 100% { transform: translateX(0); }
+  20%, 45% { transform: translateX(-1.3px); }
+  60%, 85% { transform: translateX(1.3px); }
+}
+.griner .jul-fig { transform-origin: 50% 100%; animation: jul-grin .28s ease-in-out infinite; }
+@keyframes jul-grin { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+
+.jul-fnug { position: absolute; top: -10px; border-radius: 50%; background: var(--jul-sne);
+  box-shadow: 0 0 0 1px var(--jul-snekant); opacity: 0; animation: jul-fald linear infinite; }
+@keyframes jul-fald {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12% { opacity: .9; }
+  85% { opacity: .9; }
+  100% { transform: translate(var(--drift, 18px), 150px); opacity: 0; }
+}
+.julscene.sne-slut .jul-fnug { animation-iteration-count: 1; }

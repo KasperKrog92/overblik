@@ -218,6 +218,32 @@ planlagte skifte. `?tema=moerk` /
 `temaFast`); `?tema=auto` fjerner låsen. Begge knapper fader væk når musen er
 i ro og kommer igen ved bevægelse, så skærmen står ren.
 
+## Juletema (`jul.css` + `jul.js`)
+
+Selvstændigt tema, der ikke rører `overblik.js`/`overblik.css` (bygget 25-11-2026).
+Det tænder selv 1. december og slukker efter 26. december (`SAESON_SLUT` i
+`jul.js`), også på en skærm der bare kører; uden for sæsonen sker der intet, og
+filerne kan blive liggende året rundt.
+
+- **Statisk pynt:** lyskæde øverst i sidehovedet, sne på kanten ned mod tavlen
+  og nissehue på uret.
+- **En gang imellem** (hvert 8.–22. minut, tilfældigt) laver en nisse ét af fire
+  numre i sidehovedet: hopper tværs over og vinker (`loeb`), dukker op bag
+  snekanten (`kig`), skubber til uret så det gynger (`vip`) eller stjæler huen
+  fra uret, som falder på plads igen efter 45 s (`hue`). Ved hvert timeskift
+  sner det i sidehovedet i ca. 25 s.
+- **Alt holder sig i sidehovedet:** afgangstavlen dækkes aldrig, og dens
+  statusfarver (rød/grøn/orange) får ikke konkurrence.
+- **Knap:** nissehuen til venstre for fuldskærmsknappen slår temaet fra/til;
+  skjult i ro som de andre hjørneknapper. Valget huskes pr. skærm
+  (`localStorage` `julFra`).
+- **Parametre:** `?jul=1` tvinger temaet til uden for sæsonen, `?jul=0` slår det
+  helt fra (også knappen), `?jul=demo` spiller et nummer hvert 8. sekund. I
+  konsollen: `jul.spil("hue")`, `jul.sne()`.
+- Ved "færre animationer" i systemet og i skjulte faner vises kun pynten.
+- Egne `?v=` på `jul.css`/`jul.js` i `index.html` — bumpes ved ændringer som de
+  andre.
+
 ## Drift
 
 | Hvad | Værdi |
