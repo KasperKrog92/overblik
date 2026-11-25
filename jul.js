@@ -6,13 +6,14 @@
 
    Statisk pynt (jul.css): lyskæde, sne på sidehovedets kant og nissehue på uret.
    En gang imellem (hvert 8.–22. minut, tilfældigt) laver en nisse et nummer i
-   sidehovedet, og ved hvert timeskift sner det dér i et halvt minut. Intet
+   sidehovedet, og hvert 10. minut (x:00, x:10 …) sner det dér i et halvt minut. Intet
    dækker afgangstavlen. Ved "færre animationer" i systemet vises kun pynten.
 
    Knappen (nissehue ved siden af fuldskærm) slår temaet fra og til og er skjult
    i ro som de andre hjørneknapper. Valget huskes pr. skærm i localStorage. */
 (() => {
   const NOEGLE = "julFra";
+  const SNE_HVERT = 10;                         // minutter mellem snefald
   const SAESON_SLUT = 26;                       // sidste dag i december med tema
   const q = new URLSearchParams(location.search).get("jul");
   const demo = q === "demo";
@@ -205,11 +206,12 @@
     opdater();
   });
   /* Hvert halve minut: sæsonen kan begynde/slutte, mens kioskskærmen kører, og
-     ved timeskift sner det. */
+     hvert 10. minut sner det. */
   setInterval(() => {
     opdater();
     const n = new Date();
-    if (aktiv && n.getMinutes() === 0 && sneTime !== n.getHours()) { sneTime = n.getHours(); sne(); }
+    const blok = n.getHours() * 6 + Math.floor(n.getMinutes() / SNE_HVERT);
+    if (aktiv && n.getMinutes() % SNE_HVERT === 0 && sneTime !== blok) { sneTime = blok; sne(); }
   }, 30 * 1000);
   opdater();
   window.jul = { spil, sne };   // til afprøvning i konsollen: jul.spil("hue"), jul.sne()

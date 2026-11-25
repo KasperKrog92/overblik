@@ -230,8 +230,8 @@ filerne kan blive liggende året rundt.
 - **En gang imellem** (hvert 8.–22. minut, tilfældigt) laver en nisse ét af fire
   numre i sidehovedet: hopper tværs over og vinker (`loeb`), dukker op bag
   snekanten (`kig`), skubber til uret så det gynger (`vip`) eller stjæler huen
-  fra uret, som falder på plads igen efter 45 s (`hue`). Ved hvert timeskift
-  sner det i sidehovedet i ca. 25 s.
+  fra uret, som falder på plads igen efter 45 s (`hue`). Hvert 10. minut
+  (`SNE_HVERT`) sner det i sidehovedet i ca. 25 s.
 - **Alt holder sig i sidehovedet:** afgangstavlen dækkes aldrig, og dens
   statusfarver (rød/grøn/orange) får ikke konkurrence.
 - **Knap:** nissehuen til venstre for fuldskærmsknappen slår temaet fra/til;
