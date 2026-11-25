@@ -222,8 +222,9 @@ i ro og kommer igen ved bevægelse, så skærmen står ren.
 
 Selvstændigt tema, der ikke rører `overblik.js`/`overblik.css` (bygget 25-11-2026).
 Det tænder selv 1. december og slukker efter 26. december (`SAESON_SLUT` i
-`jul.js`), også på en skærm der bare kører; uden for sæsonen sker der intet, og
-filerne kan blive liggende året rundt.
+`jul.js`), også på en skærm der bare kører. Knappen vises i hele november og
+december, så temaet kan slås til uden for sæsonen (dér er det slukket som
+udgangspunkt); resten af året sker der intet, og filerne kan blive liggende.
 
 - **Statisk pynt:** lyskæde øverst i sidehovedet, sne på kanten ned mod tavlen
   og nissehue på uret.
@@ -236,8 +237,10 @@ filerne kan blive liggende året rundt.
   statusfarver (rød/grøn/orange) får ikke konkurrence.
 - **Knap:** nissehuen til venstre for fuldskærmsknappen slår temaet fra/til;
   skjult i ro som de andre hjørneknapper. Valget huskes pr. skærm
-  (`localStorage` `julFra`).
-- **Parametre:** `?jul=1` tvinger temaet til uden for sæsonen, `?jul=0` slår det
+  (`localStorage` `julValg`), men gælder kun i den fase, det blev truffet i
+  (før, i eller efter sæsonen): 1. december tænder temaet selv, også hvis det
+  blev slået fra i november, og 27. december slukker det selv.
+- **Parametre:** `?jul=1` regner dagen som sæson, `?jul=0` slår det
   helt fra (også knappen), `?jul=demo` spiller et nummer hvert 8. sekund. I
   konsollen: `jul.spil("hue")`, `jul.sne()`.
 - Ved "færre animationer" i systemet og i skjulte faner vises kun pynten.

@@ -1,8 +1,13 @@
 /* Juletema til afgangsoverblikket — selvstændigt, rører ikke overblik.js.
 
-   Sæson: 1.–26. december. Uden for sæsonen sker der intet, og knappen er væk,
-   så filen kan blive liggende året rundt. ?jul=1 tvinger temaet til (afprøvning),
-   ?jul=0 slår det helt fra, ?jul=demo spiller en scene hvert 8. sekund.
+   Sæson: 1.–26. december, hvor temaet er tændt af sig selv. Knappen vises i
+   hele november og december, så temaet kan slås til før og efter sæsonen (dér
+   er det slukket som udgangspunkt); resten af året sker der intet, så filen kan
+   blive liggende. Et valg på knappen gælder kun i den fase, det blev truffet i
+   (før, i eller efter sæsonen): 1. december tænder temaet altså selv, også hvis
+   det blev slået fra i november, og 27. december slukker det selv.
+   ?jul=1 regner dagen som sæson (afprøvning), ?jul=0 slår alt fra, også knappen,
+   ?jul=demo spiller en scene hvert 8. sekund.
 
    Statisk pynt (jul.css): lyskæde, sne på sidehovedets kant og nissehue på uret.
    En gang imellem (hvert 8.–22. minut, tilfældigt) laver en nisse et nummer i
@@ -10,9 +15,9 @@
    dækker afgangstavlen. Ved "færre animationer" i systemet vises kun pynten.
 
    Knappen (nissehue ved siden af fuldskærm) slår temaet fra og til og er skjult
-   i ro som de andre hjørneknapper. Valget huskes pr. skærm i localStorage. */
+   i ro som de andre hjørneknapper. Valget huskes pr. skærm i localStorage (julValg). */
 (() => {
-  const NOEGLE = "julFra";
+  const NOEGLE = "julValg";
   const SNE_HVERT = 10;                         // minutter mellem snefald
   const SAESON_SLUT = 26;                       // sidste dag i december med tema
   const q = new URLSearchParams(location.search).get("jul");
@@ -37,12 +42,25 @@
     "<circle cx='20' cy='26.8' r='2.3' fill='#e8957f'/>" +
     HUE + "<g class='jul-bytte' transform='translate(-3 -13) rotate(-8 20 12)'>" + HUE + "</g></svg>";
 
-  const fra = () => { try { return localStorage.getItem(NOEGLE) === "1"; } catch (e) { return false; } };
-  const iSaeson = () => {
-    if (q === "0") return false;
-    if (q === "1" || demo) return true;
-    const n = new Date();
-    return n.getMonth() === 11 && n.getDate() <= SAESON_SLUT;
+  /* Fasen nu: "jul" (tændt som udgangspunkt), "foer"/"efter" (knappen vises,
+     slukket som udgangspunkt) eller null (intet). Året er med, så et valg fra
+     sidste år ikke hænger ved. */
+  const fase = () => {
+    if (q === "0") return null;
+    const n = new Date(), m = n.getMonth(), aar = n.getFullYear();
+    if (q === "1" || demo) return "jul" + aar;
+    if (m === 10) return "foer" + aar;
+    if (m === 11) return (n.getDate() <= SAESON_SLUT ? "jul" : "efter") + aar;
+    return null;
+  };
+  /* Skal temaet være tændt? Knap-valget vinder, men kun i den fase det blev truffet i. */
+  const taendt = (f) => {
+    if (!f) return false;
+    let valg = null;
+    try { valg = localStorage.getItem(NOEGLE); } catch (e) {}
+    if (valg === f + ":1") return true;
+    if (valg === f + ":0") return false;
+    return f.startsWith("jul");
   };
   const rolig = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -190,8 +208,8 @@
   }
 
   function opdater() {
-    const saeson = iSaeson(), skalVaere = saeson && !fra();
-    knap.hidden = !saeson;
+    const f = fase(), skalVaere = taendt(f);
+    knap.hidden = !f;
     knap.classList.toggle("fra", !skalVaere);
     const tekst = skalVaere ? "Slå juletema fra" : "Slå juletema til";
     knap.title = tekst; knap.setAttribute("aria-label", tekst);
@@ -202,7 +220,8 @@
   }
 
   knap.addEventListener("click", () => {
-    try { localStorage.setItem(NOEGLE, fra() ? "0" : "1"); } catch (e) {}
+    const f = fase();
+    try { localStorage.setItem(NOEGLE, f + (taendt(f) ? ":0" : ":1")); localStorage.removeItem("julFra"); } catch (e) {}
     opdater();
   });
   /* Hvert halve minut: sæsonen kan begynde/slutte, mens kioskskærmen kører, og
